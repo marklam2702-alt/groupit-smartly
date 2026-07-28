@@ -135,11 +135,20 @@ export function pairScore(a: Sample, b: Sample): number {
   return sameExp + sameExpOther + sameInd + sameIndOther + simIndScore + simExpScore;
 }
 
+export const GROUP_NAMES = ["Alpha", "Beta", "Gamma", "Delta"] as const;
+
 export interface GroupResult {
   groups: Sample[][];
   targetSizes: number[];
 }
 
+/**
+ * Industry-driven snake assignment:
+ * 1. Count samples per industry sector.
+ * 2. Largest industry -> Alpha, 2nd -> Beta, 3rd -> Gamma, 4th -> Delta
+ * 3. 5th -> Delta, 6th -> Gamma, 7th -> Beta, 8th -> Alpha (continues snaking)
+ * 4. Rebalance so all groups have equal size (+/- 1).
+ */
 export function sortIntoGroups(samples: Sample[], groupCount = 4): GroupResult {
   const n = samples.length;
   const base = Math.floor(n / groupCount);
@@ -149,74 +158,65 @@ export function sortIntoGroups(samples: Sample[], groupCount = 4): GroupResult {
   const groups: Sample[][] = Array.from({ length: groupCount }, () => []);
   if (n === 0) return { groups, targetSizes };
 
-  // Phase 1: cluster by (expertise + expertiseOther, industry + industryOther)
-  const keyOf = (s: Sample) =>
-    `${s.expertise}::${s.expertiseOther ?? ""}||${s.industry}::${s.industryOther ?? ""}`;
-  const expKeyOf = (s: Sample) => `${s.expertise}::${s.expertiseOther ?? ""}`;
-
-  // First, cluster tightly: same expertise + same industry
-  const clusters = new Map<string, Sample[]>();
+  // 1. Bucket by industry sector (Others split by the free-text value)
+  const indKey = (s: Sample) =>
+    s.industry === "Others" ? `Others::${s.industryOther ?? ""}` : s.industry;
+  const buckets = new Map<string, Sample[]>();
   for (const s of samples) {
-    const k = keyOf(s);
-    if (!clusters.has(k)) clusters.set(k, []);
-    clusters.get(k)!.push(s);
-  }
-  // Merge tight clusters into larger expertise-clusters (Phase 1 priority: same expertise)
-  const expClusters = new Map<string, Sample[]>();
-  for (const s of samples) {
-    const k = expKeyOf(s);
-    if (!expClusters.has(k)) expClusters.set(k, []);
-    expClusters.get(k)!.push(s);
+    const k = indKey(s);
+    if (!buckets.has(k)) buckets.set(k, []);
+    buckets.get(k)!.push(s);
   }
 
-  // Sort each expertise cluster internally so same-industry members are adjacent
-  const orderedClusters = Array.from(expClusters.values())
+  // Order buckets by size (desc); keep same-expertise members adjacent inside a bucket
+  const ordered = Array.from(buckets.values())
     .map((arr) => {
-      const byInd = new Map<string, Sample[]>();
+      const byExp = new Map<string, Sample[]>();
       for (const s of arr) {
-        const ik = `${s.industry}::${s.industryOther ?? ""}`;
-        if (!byInd.has(ik)) byInd.set(ik, []);
-        byInd.get(ik)!.push(s);
+        const ek = `${s.expertise}::${s.expertiseOther ?? ""}`;
+        if (!byExp.has(ek)) byExp.set(ek, []);
+        byExp.get(ek)!.push(s);
       }
-      return Array.from(byInd.values()).flat();
+      return Array.from(byExp.values())
+        .sort((a, b) => b.length - a.length)
+        .flat();
     })
     .sort((a, b) => b.length - a.length);
 
-  const remaining: Sample[] = [];
+  // 2 & 3. Snake order: 0,1,2,3,3,2,1,0,0,1,...
+  ordered.forEach((bucket, idx) => {
+    const cycle = Math.floor(idx / groupCount);
+    const pos = idx % groupCount;
+    const target = cycle % 2 === 0 ? pos : groupCount - 1 - pos;
+    groups[target].push(...bucket);
+  });
 
-  // Assign clusters round-robin to the least-full group that has capacity,
-  // keeping same-expertise members together as much as possible.
-  for (const cluster of orderedClusters) {
-    for (const person of cluster) {
-      // Find groups with capacity
-      const candidates = groups
-        .map((g, i) => ({ g, i, room: targetSizes[i] - g.length }))
-        .filter((c) => c.room > 0);
-      if (candidates.length === 0) {
-        remaining.push(person);
-        continue;
+  // 4. Rebalance to equal sizes, moving the least "attached" member each time
+  let guard = 0;
+  while (guard++ < n * groupCount + 100) {
+    const over = groups.findIndex((g, i) => g.length > targetSizes[i]);
+    const under = groups.findIndex((g, i) => g.length < targetSizes[i]);
+    if (over === -1 || under === -1) break;
+
+    const src = groups[over];
+    const dst = groups[under];
+    let bestIdx = 0;
+    let bestDelta = -Infinity;
+    src.forEach((person, i) => {
+      const loss = src.reduce(
+        (sum, m) => (m.id === person.id ? sum : sum + pairScore(person, m)),
+        0,
+      );
+      const gain = dst.reduce((sum, m) => sum + pairScore(person, m), 0);
+      const delta = gain - loss;
+      if (delta > bestDelta) {
+        bestDelta = delta;
+        bestIdx = i;
       }
-      // Score each candidate: prefer group with existing members most similar to person
-      candidates.sort((a, b) => {
-        const sa = a.g.reduce((sum, m) => sum + pairScore(person, m), 0);
-        const sb = b.g.reduce((sum, m) => sum + pairScore(person, m), 0);
-        if (sb !== sa) return sb - sa;
-        // Tie-break: prefer emptier group for balance
-        return b.room - a.room;
-      });
-      candidates[0].g.push(person);
-    }
-  }
-
-  // Fill remainders (shouldn't happen but safe)
-  for (const person of remaining) {
-    const target = groups
-      .map((g, i) => ({ g, i, room: targetSizes[i] - g.length }))
-      .filter((c) => c.room > 0)
-      .sort((a, b) => b.room - a.room)[0];
-    if (target) target.g.push(person);
-    else groups[0].push(person);
+    });
+    dst.push(src.splice(bestIdx, 1)[0]);
   }
 
   return { groups, targetSizes };
 }
+
