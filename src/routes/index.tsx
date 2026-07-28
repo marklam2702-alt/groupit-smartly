@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trash2 } from "lucide-react";
 import {
   AREAS_OF_EXPERTISE,
+  GROUP_NAMES,
   INDUSTRY_SECTORS,
   sortIntoGroups,
   type Expertise,
@@ -285,7 +286,7 @@ function Page() {
                 <Card key={i}>
                   <CardHeader>
                     <CardTitle className="text-base">
-                      Group {i + 1}{" "}
+                      Group {GROUP_NAMES[i] ?? i + 1}{" "}
                       <span className="text-xs font-normal text-muted-foreground">
                         ({g.length} / target {result.targetSizes[i]})
                       </span>
