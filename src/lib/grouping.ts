@@ -78,7 +78,7 @@ export const EXPERTISE_SIMILARITY: SimMap<Expertise> = symmetric<Expertise>([
   ["Formal and Professional Educator", "Artificial Intelligence and Data Analytics", "Low"],
 ]);
 
-export interface Sample {
+export interface Individual {
   id: string;
   nickName: string;
   industry: Industry;
@@ -89,7 +89,7 @@ export interface Sample {
 
 const SIM_WEIGHT: Record<Similarity, number> = { High: 3, Medium: 2, Low: 1 };
 
-function industrySim(a: Sample, b: Sample): number {
+function industrySim(a: Individual, b: Individual): number {
   if (a.industry === b.industry) {
     if (a.industry === "Others") {
       return a.industryOther && a.industryOther === b.industryOther ? 10 : 0;
@@ -100,7 +100,7 @@ function industrySim(a: Sample, b: Sample): number {
   return s ? SIM_WEIGHT[s] : 0;
 }
 
-function expertiseSim(a: Sample, b: Sample): number {
+function expertiseSim(a: Individual, b: Individual): number {
   if (a.expertise === b.expertise) {
     if (a.expertise === "Others") {
       return a.expertiseOther && a.expertiseOther === b.expertiseOther ? 20 : 0;
@@ -111,8 +111,8 @@ function expertiseSim(a: Sample, b: Sample): number {
   return s ? SIM_WEIGHT[s] * 2 : 0;
 }
 
-/** Priority score between two samples: expertise dominates industry. */
-export function pairScore(a: Sample, b: Sample): number {
+/** Priority score between two individuals: expertise dominates industry. */
+export function pairScore(a: Individual, b: Individual): number {
   // Weighted so ordering matches the spec priority:
   // same expertise > same industry > similar industry (H>M>L) > similar expertise (H>M>L)
   const sameExp = a.expertise === b.expertise && a.expertise !== "Others" ? 1000 : 0;
@@ -138,31 +138,31 @@ export function pairScore(a: Sample, b: Sample): number {
 export const GROUP_NAMES = ["Alpha", "Beta", "Gamma", "Delta"] as const;
 
 export interface GroupResult {
-  groups: Sample[][];
+  groups: Individual[][];
   targetSizes: number[];
 }
 
 /**
  * Industry-driven snake assignment:
- * 1. Count samples per industry sector.
+ * 1. Count individuals per industry sector.
  * 2. Largest industry -> Alpha, 2nd -> Beta, 3rd -> Gamma, 4th -> Delta
  * 3. 5th -> Delta, 6th -> Gamma, 7th -> Beta, 8th -> Alpha (continues snaking)
  * 4. Rebalance so all groups have equal size (+/- 1).
  */
-export function sortIntoGroups(samples: Sample[], groupCount = 4): GroupResult {
-  const n = samples.length;
+export function sortIntoGroups(individuals: Individual[], groupCount = 4): GroupResult {
+  const n = individuals.length;
   const base = Math.floor(n / groupCount);
   const extra = n % groupCount;
   const targetSizes = Array.from({ length: groupCount }, (_, i) => base + (i < extra ? 1 : 0));
 
-  const groups: Sample[][] = Array.from({ length: groupCount }, () => []);
+  const groups: Individual[][] = Array.from({ length: groupCount }, () => []);
   if (n === 0) return { groups, targetSizes };
 
   // 1. Bucket by industry sector (Others split by the free-text value)
-  const indKey = (s: Sample) =>
+  const indKey = (s: Individual) =>
     s.industry === "Others" ? `Others::${s.industryOther ?? ""}` : s.industry;
-  const buckets = new Map<string, Sample[]>();
-  for (const s of samples) {
+  const buckets = new Map<string, Individual[]>();
+  for (const s of individuals) {
     const k = indKey(s);
     if (!buckets.has(k)) buckets.set(k, []);
     buckets.get(k)!.push(s);
@@ -171,7 +171,7 @@ export function sortIntoGroups(samples: Sample[], groupCount = 4): GroupResult {
   // Order buckets by size (desc); keep same-expertise members adjacent inside a bucket
   const ordered = Array.from(buckets.values())
     .map((arr) => {
-      const byExp = new Map<string, Sample[]>();
+      const byExp = new Map<string, Individual[]>();
       for (const s of arr) {
         const ek = `${s.expertise}::${s.expertiseOther ?? ""}`;
         if (!byExp.has(ek)) byExp.set(ek, []);
@@ -219,4 +219,3 @@ export function sortIntoGroups(samples: Sample[], groupCount = 4): GroupResult {
 
   return { groups, targetSizes };
 }
-

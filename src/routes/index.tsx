@@ -20,23 +20,23 @@ import {
   sortIntoGroups,
   type Expertise,
   type Industry,
-  type Sample,
+  type Individual,
 } from "@/lib/grouping";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Sample Sorter — 4 Balanced Groups" },
+      { title: "Individual Sorter — 4 Balanced Groups" },
       {
         name: "description",
         content:
-          "Collect samples with industry and expertise and split them into four balanced, similarity-aware groups.",
+          "Collect individuals with industry and expertise and split them into four balanced, similarity-aware groups.",
       },
-      { property: "og:title", content: "Sample Sorter — 4 Balanced Groups" },
+      { property: "og:title", content: "Individual Sorter — 4 Balanced Groups" },
       {
         property: "og:description",
         content:
-          "Collect samples with industry and expertise and split them into four balanced, similarity-aware groups.",
+          "Collect individuals with industry and expertise and split them into four balanced, similarity-aware groups.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -50,7 +50,7 @@ function newId() {
 }
 
 function Page() {
-  const [samples, setSamples] = useState<Sample[]>([]);
+  const [individuals, setIndividuals] = useState<Individual[]>([]);
   const [nickName, setNickName] = useState("");
   const [industry, setIndustry] = useState<Industry | "">("");
   const [industryOther, setIndustryOther] = useState("");
@@ -66,11 +66,11 @@ function Page() {
     (industry !== "Others" || industryOther.trim().length > 0) &&
     (expertise !== "Others" || expertiseOther.trim().length > 0);
 
-  const canFinish = samples.length >= 10 && samples.length <= 30;
+  const canFinish = individuals.length >= 10 && individuals.length <= 30;
 
   const handleAdd = () => {
     if (!canInput) return;
-    const s: Sample = {
+    const s: Individual = {
       id: newId(),
       nickName: nickName.trim(),
       industry: industry as Industry,
@@ -78,7 +78,7 @@ function Page() {
       expertise: expertise as Expertise,
       expertiseOther: expertise === "Others" ? expertiseOther.trim() : undefined,
     };
-    setSamples((prev) => [...prev, s]);
+    setIndividuals((prev) => [...prev, s]);
     setNickName("");
     setIndustry("");
     setIndustryOther("");
@@ -89,18 +89,18 @@ function Page() {
   };
 
   const handleRemove = (id: string) => {
-    setSamples((prev) => prev.filter((s) => s.id !== id));
+    setIndividuals((prev) => prev.filter((s) => s.id !== id));
     setFinished(false);
   };
 
   const handleReset = () => {
-    setSamples([]);
+    setIndividuals([]);
     setFinished(false);
   };
 
   const result = useMemo(
-    () => (finished ? sortIntoGroups(samples, 4) : null),
-    [finished, samples],
+    () => (finished ? sortIntoGroups(individuals, 4) : null),
+    [finished, individuals],
   );
 
   return (
@@ -108,10 +108,10 @@ function Page() {
       <div className="mx-auto max-w-6xl px-4 py-10">
         <header className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Sample Sorter
+            Individual Sorter
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enter 10–30 samples, then split them into 4 balanced groups by shared
+            Enter 10–30 individuals, then split them into 4 balanced groups by shared
             expertise and industry.
           </p>
         </header>
@@ -120,7 +120,7 @@ function Page() {
           {/* Input form */}
           <Card>
             <CardHeader>
-              <CardTitle>Add sample</CardTitle>
+              <CardTitle>Add individual</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -193,31 +193,31 @@ function Page() {
                 <Button onClick={handleAdd} disabled={!canInput} className="flex-1">
                   Input
                 </Button>
-                {samples.length > 0 && (
+                {individuals.length > 0 && (
                   <Button variant="outline" onClick={handleReset}>
                     Clear all
                   </Button>
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                {samples.length} entered · need 10–30 to finish
+                {individuals.length} entered · need 10–30 to finish
               </p>
             </CardContent>
           </Card>
 
-          {/* Samples list */}
+          {/* Individuals list */}
           <Card>
             <CardHeader>
-              <CardTitle>Samples ({samples.length})</CardTitle>
+              <CardTitle>Individuals ({individuals.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              {samples.length === 0 ? (
+              {individuals.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No samples yet. Add your first one on the left.
+                  No individuals yet. Add your first one on the left.
                 </p>
               ) : (
                 <ul className="space-y-2 max-h-[420px] overflow-auto pr-1">
-                  {samples.map((s, idx) => (
+                  {individuals.map((s, idx) => (
                     <li
                       key={s.id}
                       className="flex items-start justify-between gap-2 rounded-md border border-border bg-card p-3"
@@ -270,9 +270,9 @@ function Page() {
             FINISH
           </Button>
         </div>
-        {!canFinish && samples.length > 0 && (
+        {!canFinish && individuals.length > 0 && (
           <p className="mt-2 text-center text-xs text-muted-foreground">
-            Enter between 10 and 30 samples to run the sort.
+            Enter between 10 and 30 individuals to run the sort.
           </p>
         )}
 
