@@ -66,7 +66,7 @@ function Page() {
     (industry !== "Others" || industryOther.trim().length > 0) &&
     (expertise !== "Others" || expertiseOther.trim().length > 0);
 
-  const canFinish = individuals.length >= 10 && individuals.length <= 30;
+  const canFinish = individuals.length > 0;
 
   const handleAdd = () => {
     if (!canInput) return;
@@ -111,7 +111,7 @@ function Page() {
             Individual Sorter
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enter 10–30 individuals, then split them into 4 balanced groups by shared
+            Enter individuals, then split them into 4 balanced groups by shared
             expertise and industry.
           </p>
         </header>
@@ -200,7 +200,7 @@ function Page() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                {individuals.length} entered · need 10–30 to finish
+                {individuals.length} entered
               </p>
             </CardContent>
           </Card>
@@ -258,7 +258,7 @@ function Page() {
         </div>
         {!canFinish && individuals.length > 0 && (
           <p className="mt-2 text-center text-xs text-muted-foreground">
-            Enter between 10 and 30 individuals to run the sort.
+            Add at least one individual to run the sort.
           </p>
         )}
 
