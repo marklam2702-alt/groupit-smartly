@@ -70,7 +70,7 @@ export const finishSession = createServerFn({ method: "POST" })
 
     const { error: updateError } = await supabaseAdmin
       .from("sessions")
-      .update({ status: "finished", result: result as unknown as Record<string, unknown> })
+      .update({ status: "finished", result: JSON.parse(JSON.stringify(result)) })
       .eq("id", session.id);
     if (updateError) throw updateError;
 
