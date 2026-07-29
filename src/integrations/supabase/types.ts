@@ -14,7 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      individuals: {
+        Row: {
+          created_at: string
+          expertise: string
+          expertise_other: string | null
+          id: string
+          industry: string
+          industry_other: string | null
+          nick_name: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          expertise: string
+          expertise_other?: string | null
+          id?: string
+          industry: string
+          industry_other?: string | null
+          nick_name: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          expertise?: string
+          expertise_other?: string | null
+          id?: string
+          industry?: string
+          industry_other?: string | null
+          nick_name?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "individuals_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          code: string
+          created_at: string
+          host_token: string
+          id: string
+          result: Json | null
+          status: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          host_token: string
+          id?: string
+          result?: Json | null
+          status?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          host_token?: string
+          id?: string
+          result?: Json | null
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
