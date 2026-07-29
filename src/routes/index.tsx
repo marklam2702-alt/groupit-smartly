@@ -220,29 +220,15 @@ function Page() {
                   {individuals.map((s, idx) => (
                     <li
                       key={s.id}
-                      className="flex items-start justify-between gap-2 rounded-md border border-border bg-card p-3"
+                      className="flex items-center justify-between gap-2 rounded-md border border-border bg-card p-3"
                     >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">
-                            #{idx + 1}
-                          </span>
-                          <span className="font-medium text-foreground truncate">
-                            {s.nickName}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          <Badge variant="secondary">
-                            {s.industry === "Others"
-                              ? `Industry: ${s.industryOther}`
-                              : s.industry}
-                          </Badge>
-                          <Badge variant="outline">
-                            {s.expertise === "Others"
-                              ? `Expertise: ${s.expertiseOther}`
-                              : s.expertise}
-                          </Badge>
-                        </div>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs text-muted-foreground">
+                          #{idx + 1}
+                        </span>
+                        <span className="font-medium text-foreground truncate">
+                          {s.nickName}
+                        </span>
                       </div>
                       <Button
                         variant="ghost"
