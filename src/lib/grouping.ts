@@ -1,26 +1,26 @@
 export const INDUSTRY_SECTORS = [
-  "Healthcare and Pharmaceuticals",
-  "Financial and Professional Services",
-  "Technology and Information Technology (IT)",
-  "Energy and Utilities",
   "Construction and Real Estate",
-  "Retail and E-commerce",
-  "Transportation, Logistics, and Supply Chain",
-  "Hospitality, Tourism, and Entertainment",
   "Education",
+  "Energy and Utilities",
+  "Financial and Professional Services",
+  "Healthcare and Pharmaceuticals",
+  "Hospitality, Tourism, and Entertainment",
+  "Retail and E-commerce",
+  "Technology and Information Technology (IT)",
+  "Transportation, Logistics, and Supply Chain",
   "Others",
 ] as const;
 
 export const AREAS_OF_EXPERTISE = [
   "Artificial Intelligence and Data Analytics",
-  "Supply Chain Optimization and Logistics",
   "Corporate Finance and Capital Allocation",
+  "Formal and Professional Educator",
+  "Human Capital Management",
+  "Precision Engineering and Smart Manufacturing",
   "Regulatory Compliance and Corporate Governance",
   "Software Engineering and Cybersecurity",
   "Strategic Marketing and Brand Management",
-  "Precision Engineering and Smart Manufacturing",
-  "Human Capital Management",
-  "Formal and Professional Educator",
+  "Supply Chain Optimization and Logistics",
   "Others",
 ] as const;
 
