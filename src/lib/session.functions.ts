@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { sortIntoGroups, type Individual } from "@/lib/grouping";
+import { assignNewIndividuals, sortIntoGroups, type GroupResult, type Individual } from "@/lib/grouping";
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
