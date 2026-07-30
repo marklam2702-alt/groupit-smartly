@@ -448,6 +448,27 @@ function SessionView({
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!hostToken) return;
+    const pw = newPassword.trim();
+    if (pw.length < 6 || pw.length > 10) {
+      toast.error("Password must be 6-10 characters");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await runChangePassword({ data: { code, hostToken, newPassword: pw } });
+      onHostTokenChange(res.hostToken);
+      setEditingPassword(false);
+      setNewPassword("");
+      toast.success("Creator password updated");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update password");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleExport = async () => {
     if (!result) return;
     const XLSX = await import("xlsx");
