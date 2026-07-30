@@ -23,7 +23,7 @@ import {
   type GroupResult,
   type Industry,
 } from "@/lib/grouping";
-import { Download, Trash2 } from "lucide-react";
+import { Download, Trash2, Eye, EyeOff } from "lucide-react";
 import {
   createSession,
   deleteIndividual,
