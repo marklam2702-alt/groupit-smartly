@@ -56,7 +56,7 @@ export const finishSession = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw error;
     if (!session) throw new Error("Session not found");
-    if (session.host_token !== data.hostToken) throw new Error("Only the creator can run the sort");
+    if (session.host_token !== data.hostToken) throw new Error("Only the host can run the sort");
 
     const { data: rows, error: rowsError } = await supabaseAdmin
       .from("individuals")
@@ -103,7 +103,7 @@ export const finishSession = createServerFn({ method: "POST" })
     return result;
   });
 
-/** Re-claim creator rights on another device using the session code + creator password. */
+/** Re-claim host rights on another device using the session code + host password. */
 export const verifyHost = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z.object({ code: z.string().min(1), hostToken: z.string().min(1) }).parse(input),
@@ -117,13 +117,13 @@ export const verifyHost = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw error;
     if (!session || session.host_token !== data.hostToken.trim()) {
-      throw new Error("Invalid session code or creator password");
+      throw new Error("Invalid session code or host password");
     }
     return { code: session.code };
   });
 
 
-/** Creator can change their password (6-10 characters). */
+/** Host can change their password (6-10 characters). */
 export const updateHostPassword = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z
@@ -147,7 +147,7 @@ export const updateHostPassword = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw error;
     if (!session) throw new Error("Session not found");
-    if (session.host_token !== data.hostToken) throw new Error("Only the creator can do this");
+    if (session.host_token !== data.hostToken) throw new Error("Only the host can do this");
 
     const { error: upError } = await supabaseAdmin
       .from("sessions")
@@ -172,7 +172,7 @@ export const deleteIndividual = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw error;
     if (!session) throw new Error("Session not found");
-    if (session.host_token !== data.hostToken) throw new Error("Only the creator can delete");
+    if (session.host_token !== data.hostToken) throw new Error("Only the host can delete");
 
     const { error: delError } = await supabaseAdmin
       .from("individuals")
@@ -196,7 +196,7 @@ export const reopenSession = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw error;
     if (!session) throw new Error("Session not found");
-    if (session.host_token !== data.hostToken) throw new Error("Only the creator can reopen");
+    if (session.host_token !== data.hostToken) throw new Error("Only the host can reopen");
 
     await supabaseAdmin
       .from("sessions")
