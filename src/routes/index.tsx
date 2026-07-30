@@ -23,7 +23,8 @@ import {
   type GroupResult,
   type Industry,
 } from "@/lib/grouping";
-import { createSession, finishSession, reopenSession } from "@/lib/session.functions";
+import { Trash2 } from "lucide-react";
+import { createSession, deleteIndividual, finishSession } from "@/lib/session.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -205,10 +206,11 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
   const nickRef = useRef<HTMLInputElement>(null);
 
   const runFinish = useServerFn(finishSession);
-  const runReopen = useServerFn(reopenSession);
+  const runDelete = useServerFn(deleteIndividual);
   const isHost = !!hostToken;
   const finished = session?.status === "finished";
   const result = session?.result ?? null;
+  const groupedIds = new Set(result ? result.groups.flat().map((g) => g.id) : []);
 
   const loadAll = useCallback(async () => {
     const { data: s } = await supabase
@@ -302,14 +304,15 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
     }
   };
 
-  const handleReopen = async () => {
+  const handleDelete = async (id: string) => {
     if (!hostToken) return;
     setBusy(true);
     try {
-      await runReopen({ data: { code, hostToken } });
+      await runDelete({ data: { code, hostToken, id } });
       await loadAll();
+      toast.success("Removed");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not reopen");
+      toast.error(e instanceof Error ? e.message : "Could not delete");
     } finally {
       setBusy(false);
     }
@@ -354,12 +357,8 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
               <CardTitle>Add individual</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {finished ? (
-                <p className="text-sm text-muted-foreground">
-                  This session is finished. No more entries can be added.
-                </p>
-              ) : (
-                <>
+
+
                   <div className="space-y-2">
                     <Label htmlFor="nick">Nick Name</Label>
                     <Input
@@ -420,11 +419,10 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
                     )}
                   </div>
 
-                  <Button onClick={handleAdd} disabled={!canInput || busy} className="w-full">
-                    Input
-                  </Button>
-                </>
-              )}
+              <Button onClick={handleAdd} disabled={!canInput || busy} className="w-full">
+                Input
+              </Button>
+
             </CardContent>
           </Card>
 
@@ -439,15 +437,39 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
                 </p>
               ) : (
                 <ul className="max-h-[420px] space-y-2 overflow-auto pr-1">
-                  {rows.map((s, idx) => (
-                    <li
-                      key={s.id}
-                      className="flex items-center gap-2 rounded-md border border-border bg-card p-3"
-                    >
-                      <span className="text-xs text-muted-foreground">#{idx + 1}</span>
-                      <span className="truncate font-medium text-foreground">{s.nick_name}</span>
-                    </li>
-                  ))}
+                  {rows.map((s, idx) => {
+                    const isNew = !!result && !groupedIds.has(s.id);
+                    return (
+                      <li
+                        key={s.id}
+                        className={`flex items-center gap-2 rounded-md border p-3 ${
+                          isNew
+                            ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                            : "border-border bg-card"
+                        }`}
+                      >
+                        <span className="text-xs text-muted-foreground">#{idx + 1}</span>
+                        <span className="truncate font-medium">{s.nick_name}</span>
+                        {isNew && (
+                          <Badge variant="outline" className="border-emerald-500 text-[10px]">
+                            new
+                          </Badge>
+                        )}
+                        {isHost && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-auto text-muted-foreground hover:text-destructive"
+                            disabled={busy}
+                            onClick={() => handleDelete(s.id)}
+                            aria-label={`Delete ${s.nick_name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </CardContent>
@@ -456,20 +478,14 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
 
         {isHost && (
           <div className="mt-8 flex justify-center gap-3">
-            {!finished ? (
-              <Button
-                size="lg"
-                onClick={handleFinish}
-                disabled={busy || rows.length === 0}
-                className="min-w-48"
-              >
-                FINISH
-              </Button>
-            ) : (
-              <Button size="lg" variant="outline" onClick={handleReopen} disabled={busy}>
-                Reopen for more entries
-              </Button>
-            )}
+            <Button
+              size="lg"
+              onClick={handleFinish}
+              disabled={busy || rows.length === 0}
+              className="min-w-48"
+            >
+              {finished ? "Run grouping again" : "FINISH"}
+            </Button>
           </div>
         )}
         {!isHost && !finished && (

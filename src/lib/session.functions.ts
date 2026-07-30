@@ -77,6 +77,32 @@ export const finishSession = createServerFn({ method: "POST" })
     return result;
   });
 
+export const deleteIndividual = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z
+      .object({ code: z.string().min(1), hostToken: z.string().min(1), id: z.string().uuid() })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: session, error } = await supabaseAdmin
+      .from("sessions")
+      .select("id, host_token")
+      .eq("code", data.code.toUpperCase())
+      .maybeSingle();
+    if (error) throw error;
+    if (!session) throw new Error("Session not found");
+    if (session.host_token !== data.hostToken) throw new Error("Only the creator can delete");
+
+    const { error: delError } = await supabaseAdmin
+      .from("individuals")
+      .delete()
+      .eq("id", data.id)
+      .eq("session_id", session.id);
+    if (delError) throw delError;
+    return { ok: true };
+  });
+
 export const reopenSession = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z.object({ code: z.string().min(1), hostToken: z.string().min(1) }).parse(input),
