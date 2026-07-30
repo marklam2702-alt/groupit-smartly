@@ -604,7 +604,32 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
         </div>
 
         {isHost && (
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <div className="mt-8 flex flex-col items-center gap-2">
+            <span className="text-sm font-medium text-foreground">Number of groups</span>
+            <div className="flex gap-2">
+              {[2, 3, 4].map((n) => (
+                <Button
+                  key={n}
+                  size="sm"
+                  variant={groupCount === n ? "default" : "outline"}
+                  disabled={groupCountLocked || busy}
+                  onClick={() => setGroupCountChoice(n)}
+                >
+                  {n} ({GROUP_NAMES.slice(0, n).join(", ")})
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {groupCountLocked
+                ? "Locked while a result exists — clear the result to change it."
+                : "Choose before running the grouping."}
+            </p>
+          </div>
+        )}
+
+        {isHost && (
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+
             <Button
               size="lg"
               onClick={handleFinish}
