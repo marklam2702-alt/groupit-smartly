@@ -254,10 +254,31 @@ function Page() {
     );
   }
 
-  return <SessionView code={code} hostToken={hostToken} />;
+  return (
+    <SessionView
+      code={code}
+      hostToken={hostToken}
+      onExit={() => {
+        setCode(null);
+        setHostToken(null);
+        setJoinCode("");
+        setHostCode("");
+        setHostPassword("");
+        window.history.replaceState(null, "", window.location.pathname);
+      }}
+    />
+  );
 }
 
-function SessionView({ code, hostToken }: { code: string; hostToken: string | null }) {
+function SessionView({
+  code,
+  hostToken,
+  onExit,
+}: {
+  code: string;
+  hostToken: string | null;
+  onExit: () => void;
+}) {
   const [session, setSession] = useState<SessionRow | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
   const [nickName, setNickName] = useState("");
@@ -475,6 +496,10 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
             >
               Copy link
             </Button>
+            <Button variant="ghost" size="sm" onClick={onExit}>
+              Exit
+            </Button>
+
           </div>
         </header>
 
