@@ -359,7 +359,7 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
     if (!hostToken) return;
     setBusy(true);
     try {
-      await runFinish({ data: { code, hostToken } });
+      await runFinish({ data: { code, hostToken, groupCount } });
       await loadAll();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Sort failed");
@@ -367,6 +367,7 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
       setBusy(false);
     }
   };
+
 
   const handleDelete = async (id: string) => {
     if (!hostToken) return;
