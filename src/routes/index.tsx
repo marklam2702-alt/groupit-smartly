@@ -231,13 +231,27 @@ function Page() {
                     placeholder="Session code"
                     maxLength={10}
                   />
-                  <Input
-                    value={hostPassword}
-                    onChange={(e) => setHostPassword(e.target.value)}
-                    placeholder="Creator password"
-                    autoComplete="off"
-                    onKeyDown={(e) => e.key === "Enter" && handleHostLogin()}
-                  />
+                  <div className="relative">
+                    <Input
+                      value={hostPassword}
+                      onChange={(e) => setHostPassword(e.target.value)}
+                      type={showHostPassword ? "text" : "password"}
+                      placeholder="Creator password"
+                      autoComplete="off"
+                      onKeyDown={(e) => e.key === "Enter" && handleHostLogin()}
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowHostPassword((v) => !v)}
+                      aria-label={showHostPassword ? "Hide password" : "Show password"}
+                    >
+                      {showHostPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </Button>
+                  </div>
                 </div>
                 <Button
                   variant="secondary"
