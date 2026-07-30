@@ -665,8 +665,11 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
 
         {result && (
           <section className="mt-10">
-            <h2 className="mb-4 text-xl font-semibold text-foreground">Result — 4 groups</h2>
+            <h2 className="mb-4 text-xl font-semibold text-foreground">
+              Result — {result.groups.length} groups
+            </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+
               {result.groups.map((g, i) => (
                 <Card key={i}>
                   <CardHeader>
