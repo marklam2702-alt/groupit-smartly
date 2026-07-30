@@ -23,7 +23,7 @@ import {
   type GroupResult,
   type Industry,
 } from "@/lib/grouping";
-import { Download, Trash2 } from "lucide-react";
+import { Download, Trash2, Eye, EyeOff } from "lucide-react";
 import {
   createSession,
   deleteIndividual,
@@ -93,6 +93,7 @@ function Page() {
   const [joinCode, setJoinCode] = useState("");
   const [hostCode, setHostCode] = useState("");
   const [hostPassword, setHostPassword] = useState("");
+  const [showHostPassword, setShowHostPassword] = useState(false);
   const [hostToken, setHostToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -230,13 +231,27 @@ function Page() {
                     placeholder="Session code"
                     maxLength={10}
                   />
-                  <Input
-                    value={hostPassword}
-                    onChange={(e) => setHostPassword(e.target.value)}
-                    placeholder="Creator password"
-                    autoComplete="off"
-                    onKeyDown={(e) => e.key === "Enter" && handleHostLogin()}
-                  />
+                  <div className="relative">
+                    <Input
+                      value={hostPassword}
+                      onChange={(e) => setHostPassword(e.target.value)}
+                      type={showHostPassword ? "text" : "password"}
+                      placeholder="Creator password"
+                      autoComplete="off"
+                      onKeyDown={(e) => e.key === "Enter" && handleHostLogin()}
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowHostPassword((v) => !v)}
+                      aria-label={showHostPassword ? "Hide password" : "Show password"}
+                    >
+                      {showHostPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </Button>
+                  </div>
                 </div>
                 <Button
                   variant="secondary"
@@ -288,6 +303,7 @@ function SessionView({
   const [expertiseOther, setExpertiseOther] = useState("");
   const [busy, setBusy] = useState(false);
   const [groupCountChoice, setGroupCountChoice] = useState(4);
+  const [showSessionPassword, setShowSessionPassword] = useState(false);
   const nickRef = useRef<HTMLInputElement>(null);
 
   const runFinish = useServerFn(finishSession);
@@ -465,7 +481,18 @@ function SessionView({
             {isHost && hostToken && (
               <p className="mt-2 text-sm text-muted-foreground">
                 Creator password{" "}
-                <span className="font-mono text-foreground">{hostToken}</span>{" "}
+                <span className="font-mono text-foreground">
+                  {showSessionPassword ? hostToken : "•".repeat(hostToken.length)}
+                </span>{" "}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowSessionPassword((v) => !v)}
+                  aria-label={showSessionPassword ? "Hide password" : "Show password"}
+                >
+                  {showSessionPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
