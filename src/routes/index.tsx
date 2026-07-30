@@ -354,12 +354,9 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
               <CardTitle>Add individual</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {finished ? (
-                <p className="text-sm text-muted-foreground">
-                  This session is finished. No more entries can be added.
-                </p>
-              ) : (
+              <>
                 <>
+
                   <div className="space-y-2">
                     <Label htmlFor="nick">Nick Name</Label>
                     <Input
