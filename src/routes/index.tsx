@@ -24,7 +24,12 @@ import {
   type Industry,
 } from "@/lib/grouping";
 import { Trash2 } from "lucide-react";
-import { createSession, deleteIndividual, finishSession } from "@/lib/session.functions";
+import {
+  createSession,
+  deleteIndividual,
+  finishSession,
+  verifyHost,
+} from "@/lib/session.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -85,10 +90,32 @@ function saveHostToken(code: string, token: string) {
 function Page() {
   const [code, setCode] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
+  const [hostCode, setHostCode] = useState("");
+  const [hostPassword, setHostPassword] = useState("");
   const [hostToken, setHostToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const create = useServerFn(createSession);
+  const claimHost = useServerFn(verifyHost);
+
+  const handleHostLogin = async () => {
+    const c = hostCode.trim().toUpperCase();
+    const token = hostPassword.trim();
+    if (!c || !token) return;
+    setBusy(true);
+    try {
+      const res = await claimHost({ data: { code: c, hostToken: token } });
+      saveHostToken(res.code, token);
+      setHostToken(token);
+      setCode(res.code);
+      window.history.replaceState(null, "", `?code=${res.code}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Invalid session code or creator password");
+    } finally {
+      setBusy(false);
+    }
+  };
+
 
   const handleCreate = async () => {
     setBusy(true);
@@ -182,6 +209,41 @@ function Page() {
                   onClick={() => enterCode(joinCode)}
                 >
                   Join
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="sm:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-base">Return as creator</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Already created a session on another device? Enter the session code and the
+                  creator password shown on your creator screen.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input
+                    value={hostCode}
+                    onChange={(e) => setHostCode(e.target.value.toUpperCase())}
+                    placeholder="Session code"
+                    maxLength={10}
+                  />
+                  <Input
+                    value={hostPassword}
+                    onChange={(e) => setHostPassword(e.target.value)}
+                    placeholder="Creator password"
+                    autoComplete="off"
+                    onKeyDown={(e) => e.key === "Enter" && handleHostLogin()}
+                  />
+                </div>
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  disabled={busy || !hostCode.trim() || !hostPassword.trim()}
+                  onClick={handleHostLogin}
+                >
+                  Unlock creator access
                 </Button>
               </CardContent>
             </Card>
@@ -333,6 +395,25 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
               — share it so others can submit from their own device.
               {isHost && " You are the creator."}
             </p>
+            {isHost && hostToken && (
+              <p className="mt-2 text-sm text-muted-foreground">
+                Creator password{" "}
+                <span className="font-mono text-foreground">{hostToken}</span>{" "}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(hostToken);
+                    toast.success("Creator password copied");
+                  }}
+                >
+                  Copy
+                </Button>
+                <br />
+                Keep it private — use it with the session code to return as creator from another
+                device.
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={finished ? "secondary" : "outline"}>
