@@ -258,6 +258,7 @@ export function assignNewIndividuals(
   existingGroups: Individual[][],
   newcomers: Individual[],
   groupCount = 4,
+  basis: GroupingBasis = "first",
 ): GroupResult {
   const groups: Individual[][] = Array.from({ length: groupCount }, (_, i) => [...(existingGroups[i] ?? [])]);
   const n = groups.reduce((sum, g) => sum + g.length, 0) + newcomers.length;
@@ -271,7 +272,7 @@ export function assignNewIndividuals(
     for (let i = 0; i < groupCount; i++) {
       // Groups already at or above their target only take newcomers if nothing else can.
       const roomPenalty = groups[i].length >= targetSizes[i] ? 1_000_000 : 0;
-      const fit = groups[i].reduce((sum, m) => sum + pairScore(person, m), 0);
+      const fit = groups[i].reduce((sum, m) => sum + fitScore(person, m, basis), 0);
       const score = fit - roomPenalty - groups[i].length;
       if (score > bestScore) {
         bestScore = score;
@@ -281,5 +282,5 @@ export function assignNewIndividuals(
     groups[bestIdx].push(person);
   }
 
-  return { groups, targetSizes };
+  return { groups, targetSizes, basis };
 }
