@@ -35,8 +35,15 @@ export const createSession = createServerFn({ method: "POST" }).handler(async ()
 
 export const finishSession = createServerFn({ method: "POST" })
   .inputValidator((input) =>
-    z.object({ code: z.string().min(1), hostToken: z.string().min(1) }).parse(input),
+    z
+      .object({
+        code: z.string().min(1),
+        hostToken: z.string().min(1),
+        groupCount: z.number().int().min(2).max(4).optional(),
+      })
+      .parse(input),
   )
+
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
