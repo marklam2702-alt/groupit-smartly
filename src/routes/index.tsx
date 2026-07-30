@@ -29,6 +29,7 @@ import {
   deleteIndividual,
   finishSession,
   reopenSession,
+  updateHostPassword,
   verifyHost,
 } from "@/lib/session.functions";
 
