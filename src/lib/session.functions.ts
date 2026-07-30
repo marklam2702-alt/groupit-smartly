@@ -80,8 +80,9 @@ export const finishSession = createServerFn({ method: "POST" })
     let result: GroupResult;
 
     if (previous?.groups?.length) {
-      // Group count is locked once a result exists.
+      // Group count and grouping logic are locked once a result exists.
       const groupCount = previous.groups.length;
+      const basis = previous.basis ?? "first";
       const alive = new Map(individuals.map((i) => [i.id, i]));
       // Keep everyone already grouped exactly where they are (minus deleted rows).
       const existingGroups = previous.groups.map((g) =>
@@ -89,9 +90,9 @@ export const finishSession = createServerFn({ method: "POST" })
       );
       const placed = new Set(existingGroups.flat().map((m) => m.id));
       const newcomers = individuals.filter((i) => !placed.has(i.id));
-      result = assignNewIndividuals(existingGroups, newcomers, groupCount);
+      result = assignNewIndividuals(existingGroups, newcomers, groupCount, basis);
     } else {
-      result = sortIntoGroups(individuals, data.groupCount ?? 4);
+      result = sortIntoGroups(individuals, data.groupCount ?? 4, data.basis ?? "first");
     }
 
 
