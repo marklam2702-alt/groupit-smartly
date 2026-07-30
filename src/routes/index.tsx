@@ -113,7 +113,7 @@ function Page() {
       setCode(res.code);
       window.history.replaceState(null, "", `?code=${res.code}`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Invalid session code or creator password");
+      toast.error(e instanceof Error ? e.message : "Invalid session code or host password");
     } finally {
       setBusy(false);
     }
@@ -218,12 +218,12 @@ function Page() {
 
             <Card className="sm:col-span-2">
               <CardHeader>
-                <CardTitle className="text-base">Return as creator</CardTitle>
+              <CardTitle className="text-base">Return as host</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">
                   Already created a session on another device? Enter the session code and the
-                  creator password shown on your creator screen.
+                  host password shown on your host screen.
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Input
@@ -237,7 +237,7 @@ function Page() {
                       value={hostPassword}
                       onChange={(e) => setHostPassword(e.target.value)}
                       type={showHostPassword ? "text" : "password"}
-                      placeholder="Creator password"
+                      placeholder="Host password"
                       autoComplete="off"
                       onKeyDown={(e) => e.key === "Enter" && handleHostLogin()}
                       className="pr-10"
@@ -260,7 +260,7 @@ function Page() {
                   disabled={busy || !hostCode.trim() || !hostPassword.trim()}
                   onClick={handleHostLogin}
                 >
-                  Unlock creator access
+                  Unlock host access
                 </Button>
               </CardContent>
             </Card>
@@ -507,13 +507,13 @@ function SessionView({
               Session code{" "}
               <span className="font-mono text-base font-semibold text-foreground">{code}</span>{" "}
               — share it so others can submit from their own device.
-              {isHost && " You are the creator."}
+              {isHost && " You are the host."}
             </p>
             {isHost && hostToken && (
               <div className="mt-2 text-sm text-muted-foreground">
                 {editingPassword ? (
                   <div className="flex flex-wrap items-center gap-2">
-                    <span>New creator password</span>
+                    <span>New host password</span>
                     <Input
                       className="h-8 w-44"
                       value={newPassword}
@@ -547,7 +547,7 @@ function SessionView({
                   </div>
                 ) : (
                   <div className="flex flex-wrap items-center gap-1">
-                    <span>Creator password</span>
+                    <span>Host password</span>
                     <span className="font-mono text-foreground">
                       {showSessionPassword ? hostToken : "•".repeat(hostToken.length)}
                     </span>
@@ -565,7 +565,7 @@ function SessionView({
                       size="sm"
                       onClick={() => {
                         navigator.clipboard.writeText(hostToken);
-                        toast.success("Creator password copied");
+                        toast.success("Host password copied");
                       }}
                     >
                       Copy
@@ -583,7 +583,7 @@ function SessionView({
                   </div>
                 )}
                 <p className="mt-1">
-                  Keep it private — use it with the session code to return as creator from another
+                  Keep it private — use it with the session code to return as host from another
                   device.
                 </p>
               </div>
@@ -791,7 +791,7 @@ function SessionView({
         )}
         {!isHost && !finished && (
           <p className="mt-8 text-center text-sm text-muted-foreground">
-            Waiting for the session creator to press FINISH. Results appear here automatically.
+            Waiting for the session host to press FINISH. Results appear here automatically.
           </p>
         )}
 
