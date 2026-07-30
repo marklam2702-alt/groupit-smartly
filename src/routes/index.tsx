@@ -85,10 +85,32 @@ function saveHostToken(code: string, token: string) {
 function Page() {
   const [code, setCode] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
+  const [hostCode, setHostCode] = useState("");
+  const [hostPassword, setHostPassword] = useState("");
   const [hostToken, setHostToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const create = useServerFn(createSession);
+  const claimHost = useServerFn(verifyHost);
+
+  const handleHostLogin = async () => {
+    const c = hostCode.trim().toUpperCase();
+    const token = hostPassword.trim();
+    if (!c || !token) return;
+    setBusy(true);
+    try {
+      const res = await claimHost({ data: { code: c, hostToken: token } });
+      saveHostToken(res.code, token);
+      setHostToken(token);
+      setCode(res.code);
+      window.history.replaceState(null, "", `?code=${res.code}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Invalid session code or creator password");
+    } finally {
+      setBusy(false);
+    }
+  };
+
 
   const handleCreate = async () => {
     setBusy(true);
