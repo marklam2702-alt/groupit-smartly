@@ -481,7 +481,18 @@ function SessionView({
             {isHost && hostToken && (
               <p className="mt-2 text-sm text-muted-foreground">
                 Creator password{" "}
-                <span className="font-mono text-foreground">{hostToken}</span>{" "}
+                <span className="font-mono text-foreground">
+                  {showSessionPassword ? hostToken : "•".repeat(hostToken.length)}
+                </span>{" "}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowSessionPassword((v) => !v)}
+                  aria-label={showSessionPassword ? "Hide password" : "Show password"}
+                >
+                  {showSessionPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
