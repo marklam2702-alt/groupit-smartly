@@ -42,7 +42,7 @@ export const finishSession = createServerFn({ method: "POST" })
 
     const { data: session, error } = await supabaseAdmin
       .from("sessions")
-      .select("id, host_token")
+      .select("id, host_token, result")
       .eq("code", data.code.toUpperCase())
       .maybeSingle();
     if (error) throw error;
@@ -66,7 +66,21 @@ export const finishSession = createServerFn({ method: "POST" })
       expertiseOther: r.expertise_other ?? undefined,
     }));
 
-    const result = sortIntoGroups(individuals, 4);
+    const previous = (session.result as unknown as GroupResult | null) ?? null;
+    let result: GroupResult;
+
+    if (previous?.groups?.length) {
+      const alive = new Map(individuals.map((i) => [i.id, i]));
+      // Keep everyone already grouped exactly where they are (minus deleted rows).
+      const existingGroups = previous.groups.map((g) =>
+        g.map((m) => alive.get(m.id)).filter((m): m is Individual => !!m),
+      );
+      const placed = new Set(existingGroups.flat().map((m) => m.id));
+      const newcomers = individuals.filter((i) => !placed.has(i.id));
+      result = assignNewIndividuals(existingGroups, newcomers, 4);
+    } else {
+      result = sortIntoGroups(individuals, 4);
+    }
 
     const { error: updateError } = await supabaseAdmin
       .from("sessions")
