@@ -35,8 +35,15 @@ export const createSession = createServerFn({ method: "POST" }).handler(async ()
 
 export const finishSession = createServerFn({ method: "POST" })
   .inputValidator((input) =>
-    z.object({ code: z.string().min(1), hostToken: z.string().min(1) }).parse(input),
+    z
+      .object({
+        code: z.string().min(1),
+        hostToken: z.string().min(1),
+        groupCount: z.number().int().min(2).max(4).optional(),
+      })
+      .parse(input),
   )
+
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -70,6 +77,8 @@ export const finishSession = createServerFn({ method: "POST" })
     let result: GroupResult;
 
     if (previous?.groups?.length) {
+      // Group count is locked once a result exists.
+      const groupCount = previous.groups.length;
       const alive = new Map(individuals.map((i) => [i.id, i]));
       // Keep everyone already grouped exactly where they are (minus deleted rows).
       const existingGroups = previous.groups.map((g) =>
@@ -77,10 +86,11 @@ export const finishSession = createServerFn({ method: "POST" })
       );
       const placed = new Set(existingGroups.flat().map((m) => m.id));
       const newcomers = individuals.filter((i) => !placed.has(i.id));
-      result = assignNewIndividuals(existingGroups, newcomers, 4);
+      result = assignNewIndividuals(existingGroups, newcomers, groupCount);
     } else {
-      result = sortIntoGroups(individuals, 4);
+      result = sortIntoGroups(individuals, data.groupCount ?? 4);
     }
+
 
     const { error: updateError } = await supabaseAdmin
       .from("sessions")

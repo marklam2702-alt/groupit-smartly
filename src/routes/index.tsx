@@ -266,6 +266,7 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
   const [expertise, setExpertise] = useState<Expertise | "">("");
   const [expertiseOther, setExpertiseOther] = useState("");
   const [busy, setBusy] = useState(false);
+  const [groupCountChoice, setGroupCountChoice] = useState(4);
   const nickRef = useRef<HTMLInputElement>(null);
 
   const runFinish = useServerFn(finishSession);
@@ -274,7 +275,10 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
   const isHost = !!hostToken;
   const finished = session?.status === "finished";
   const result = session?.result ?? null;
+  const groupCount = result?.groups.length ?? groupCountChoice;
+  const groupCountLocked = !!result;
   const groupedIds = new Set(result ? result.groups.flat().map((g) => g.id) : []);
+
 
   const loadAll = useCallback(async () => {
     const { data: s } = await supabase
@@ -359,7 +363,7 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
     if (!hostToken) return;
     setBusy(true);
     try {
-      await runFinish({ data: { code, hostToken } });
+      await runFinish({ data: { code, hostToken, groupCount } });
       await loadAll();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Sort failed");
@@ -367,6 +371,7 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
       setBusy(false);
     }
   };
+
 
   const handleDelete = async (id: string) => {
     if (!hostToken) return;
@@ -599,7 +604,32 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
         </div>
 
         {isHost && (
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <div className="mt-8 flex flex-col items-center gap-2">
+            <span className="text-sm font-medium text-foreground">Number of groups</span>
+            <div className="flex gap-2">
+              {[2, 3, 4].map((n) => (
+                <Button
+                  key={n}
+                  size="sm"
+                  variant={groupCount === n ? "default" : "outline"}
+                  disabled={groupCountLocked || busy}
+                  onClick={() => setGroupCountChoice(n)}
+                >
+                  {n} ({GROUP_NAMES.slice(0, n).join(", ")})
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {groupCountLocked
+                ? "Locked while a result exists — clear the result to change it."
+                : "Choose before running the grouping."}
+            </p>
+          </div>
+        )}
+
+        {isHost && (
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+
             <Button
               size="lg"
               onClick={handleFinish}
@@ -635,8 +665,11 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
 
         {result && (
           <section className="mt-10">
-            <h2 className="mb-4 text-xl font-semibold text-foreground">Result — 4 groups</h2>
+            <h2 className="mb-4 text-xl font-semibold text-foreground">
+              Result — {result.groups.length} groups
+            </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+
               {result.groups.map((g, i) => (
                 <Card key={i}>
                   <CardHeader>
