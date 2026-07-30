@@ -133,9 +133,13 @@ export function pairScore(a: Individual, b: Individual): number {
 
 export const GROUP_NAMES = ["Alpha", "Beta", "Gamma", "Delta"] as const;
 
+/** Which category drives the bucketing: the first (industry) or second (expertise). */
+export type GroupingBasis = "first" | "second";
+
 export interface GroupResult {
   groups: Individual[][];
   targetSizes: number[];
+  basis?: GroupingBasis;
 }
 
 /**
@@ -145,38 +149,53 @@ export interface GroupResult {
  * 3. 5th -> Delta, 6th -> Gamma, 7th -> Beta, 8th -> Alpha (continues snaking)
  * 4. Rebalance so all groups have equal size (+/- 1).
  */
-export function sortIntoGroups(individuals: Individual[], groupCount = 4): GroupResult {
+export function sortIntoGroups(
+  individuals: Individual[],
+  groupCount = 4,
+  basis: GroupingBasis = "first",
+): GroupResult {
   const n = individuals.length;
   const base = Math.floor(n / groupCount);
   const extra = n % groupCount;
   const targetSizes = Array.from({ length: groupCount }, (_, i) => base + (i < extra ? 1 : 0));
 
   const groups: Individual[][] = Array.from({ length: groupCount }, () => []);
-  if (n === 0) return { groups, targetSizes };
+  if (n === 0) return { groups, targetSizes, basis };
 
-  // 1. Bucket by industry sector (Others split by the free-text value)
-  const indKey = (s: Individual) => (s.industry === "Others" ? `Others::${s.industryOther ?? ""}` : s.industry);
+  const primaryKey = (s: Individual) =>
+    basis === "first"
+      ? s.industry === "Others"
+        ? `Others::${s.industryOther ?? ""}`
+        : s.industry
+      : s.expertise === "Others"
+        ? `Others::${s.expertiseOther ?? ""}`
+        : s.expertise;
+  const secondaryKey = (s: Individual) =>
+    basis === "first" ? `${s.expertise}::${s.expertiseOther ?? ""}` : `${s.industry}::${s.industryOther ?? ""}`;
+
+  // 1. Bucket by the chosen primary category (Others split by the free-text value)
   const buckets = new Map<string, Individual[]>();
   for (const s of individuals) {
-    const k = indKey(s);
+    const k = primaryKey(s);
     if (!buckets.has(k)) buckets.set(k, []);
     buckets.get(k)!.push(s);
   }
 
-  // Order buckets by size (desc); keep same-expertise members adjacent inside a bucket
+  // Order buckets by size (desc); keep same-secondary-category members adjacent inside a bucket
   const ordered = Array.from(buckets.values())
     .map((arr) => {
-      const byExp = new Map<string, Individual[]>();
+      const bySecond = new Map<string, Individual[]>();
       for (const s of arr) {
-        const ek = `${s.expertise}::${s.expertiseOther ?? ""}`;
-        if (!byExp.has(ek)) byExp.set(ek, []);
-        byExp.get(ek)!.push(s);
+        const ek = secondaryKey(s);
+        if (!bySecond.has(ek)) bySecond.set(ek, []);
+        bySecond.get(ek)!.push(s);
       }
-      return Array.from(byExp.values())
+      return Array.from(bySecond.values())
         .sort((a, b) => b.length - a.length)
         .flat();
     })
     .sort((a, b) => b.length - a.length);
+
 
   // 2 & 3. Snake order: 0,1,2,3,3,2,1,0,0,1,...
   ordered.forEach((bucket, idx) => {
@@ -198,8 +217,8 @@ export function sortIntoGroups(individuals: Individual[], groupCount = 4): Group
     let bestIdx = 0;
     let bestDelta = -Infinity;
     src.forEach((person, i) => {
-      const loss = src.reduce((sum, m) => (m.id === person.id ? sum : sum + pairScore(person, m)), 0);
-      const gain = dst.reduce((sum, m) => sum + pairScore(person, m), 0);
+      const loss = src.reduce((sum, m) => (m.id === person.id ? sum : sum + fitScore(person, m, basis)), 0);
+      const gain = dst.reduce((sum, m) => sum + fitScore(person, m, basis), 0);
       const delta = gain - loss;
       if (delta > bestDelta) {
         bestDelta = delta;
@@ -209,8 +228,26 @@ export function sortIntoGroups(individuals: Individual[], groupCount = 4): Group
     dst.push(src.splice(bestIdx, 1)[0]);
   }
 
-  return { groups, targetSizes };
+  return { groups, targetSizes, basis };
 }
+
+/** pairScore oriented to the chosen primary category. */
+export function fitScore(a: Individual, b: Individual, basis: GroupingBasis = "first"): number {
+  if (basis === "first") return pairScore(a, b);
+  // Second category dominates: expertise takes the "primary" weights.
+  const samePrimary = a.expertise === b.expertise && a.expertise !== "Others" ? 1000 : 0;
+  const samePrimaryOther =
+    a.expertise === "Others" && b.expertise === "Others" && a.expertiseOther === b.expertiseOther ? 1000 : 0;
+  const sameSecondary = a.industry === b.industry && a.industry !== "Others" ? 500 : 0;
+  const sameSecondaryOther =
+    a.industry === "Others" && b.industry === "Others" && a.industryOther === b.industryOther ? 500 : 0;
+  const simPrimary = EXPERTISE_SIMILARITY[a.expertise]?.[b.expertise];
+  const simPrimaryScore = simPrimary ? { High: 300, Medium: 200, Low: 100 }[simPrimary] : 0;
+  const simSecondary = INDUSTRY_SIMILARITY[a.industry]?.[b.industry];
+  const simSecondaryScore = simSecondary ? { High: 30, Medium: 20, Low: 10 }[simSecondary] : 0;
+  return samePrimary + samePrimaryOther + sameSecondary + sameSecondaryOther + simPrimaryScore + simSecondaryScore;
+}
+
 
 /**
  * Incremental assignment: keeps every previously grouped individual exactly
@@ -221,6 +258,7 @@ export function assignNewIndividuals(
   existingGroups: Individual[][],
   newcomers: Individual[],
   groupCount = 4,
+  basis: GroupingBasis = "first",
 ): GroupResult {
   const groups: Individual[][] = Array.from({ length: groupCount }, (_, i) => [...(existingGroups[i] ?? [])]);
   const n = groups.reduce((sum, g) => sum + g.length, 0) + newcomers.length;
@@ -234,7 +272,7 @@ export function assignNewIndividuals(
     for (let i = 0; i < groupCount; i++) {
       // Groups already at or above their target only take newcomers if nothing else can.
       const roomPenalty = groups[i].length >= targetSizes[i] ? 1_000_000 : 0;
-      const fit = groups[i].reduce((sum, m) => sum + pairScore(person, m), 0);
+      const fit = groups[i].reduce((sum, m) => sum + fitScore(person, m, basis), 0);
       const score = fit - roomPenalty - groups[i].length;
       if (score > bestScore) {
         bestScore = score;
@@ -244,5 +282,5 @@ export function assignNewIndividuals(
     groups[bestIdx].push(person);
   }
 
-  return { groups, targetSizes };
+  return { groups, targetSizes, basis };
 }

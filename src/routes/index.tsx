@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
-import { GROUP_NAMES, type GroupResult } from "@/lib/grouping";
+import { GROUP_NAMES, type GroupResult, type GroupingBasis } from "@/lib/grouping";
 import {
   categoriesToRows,
   normalizeCategories,
@@ -311,6 +311,7 @@ function SessionView({
   const [expertiseOther, setExpertiseOther] = useState("");
   const [busy, setBusy] = useState(false);
   const [groupCountChoice, setGroupCountChoice] = useState(4);
+  const [basisChoice, setBasisChoice] = useState<GroupingBasis>("first");
   const [showSessionPassword, setShowSessionPassword] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -327,6 +328,7 @@ function SessionView({
   const result = session?.result ?? null;
   const groupCount = result?.groups.length ?? groupCountChoice;
   const groupCountLocked = !!result;
+  const basis: GroupingBasis = result?.basis ?? basisChoice;
   const groupedIds = new Set(result ? result.groups.flat().map((g) => g.id) : []);
   const cats: CategoryConfig = normalizeCategories(session?.categories);
 
@@ -414,7 +416,7 @@ function SessionView({
     if (!hostToken) return;
     setBusy(true);
     try {
-      await runFinish({ data: { code, hostToken, groupCount } });
+      await runFinish({ data: { code, hostToken, groupCount, basis } });
       await loadAll();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Sort failed");
@@ -828,6 +830,29 @@ function SessionView({
                 ? "Locked while a result exists — clear the result to change it."
                 : "Choose before running the grouping."}
             </p>
+
+            <span className="mt-4 text-sm font-medium text-foreground">Grouping logic</span>
+            <div className="flex flex-wrap justify-center gap-2">
+              {([
+                ["first", `A. Group by ${cats.first.name}`],
+                ["second", `B. Group by ${cats.second.name}`],
+              ] as Array<[GroupingBasis, string]>).map(([value, label]) => (
+                <Button
+                  key={value}
+                  size="sm"
+                  variant={basis === value ? "default" : "outline"}
+                  disabled={groupCountLocked || busy}
+                  onClick={() => setBasisChoice(value)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {groupCountLocked
+                ? "Locked while a result exists — clear the result to change it."
+                : "Choose before running the grouping."}
+            </p>
           </div>
         )}
 
@@ -840,7 +865,7 @@ function SessionView({
               disabled={busy || rows.length === 0}
               className="min-w-48"
             >
-              {finished ? "Run grouping again" : "FINISH"}
+              {finished ? "Run grouping again" : "RUN GROUPING"}
             </Button>
             <Button
               size="lg"
@@ -863,7 +888,7 @@ function SessionView({
         )}
         {!isHost && !finished && (
           <p className="mt-8 text-center text-sm text-muted-foreground">
-            Waiting for the session host to press FINISH. Results appear here automatically.
+            Waiting for the session host to press RUN GROUPING. Results appear here automatically.
           </p>
         )}
 
