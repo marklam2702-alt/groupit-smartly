@@ -395,6 +395,25 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
               — share it so others can submit from their own device.
               {isHost && " You are the creator."}
             </p>
+            {isHost && hostToken && (
+              <p className="mt-2 text-sm text-muted-foreground">
+                Creator password{" "}
+                <span className="font-mono text-foreground">{hostToken}</span>{" "}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(hostToken);
+                    toast.success("Creator password copied");
+                  }}
+                >
+                  Copy
+                </Button>
+                <br />
+                Keep it private — use it with the session code to return as creator from another
+                device.
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={finished ? "secondary" : "outline"}>
