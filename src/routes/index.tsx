@@ -354,8 +354,7 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
               <CardTitle>Add individual</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <>
-                <>
+
 
                   <div className="space-y-2">
                     <Label htmlFor="nick">Nick Name</Label>
