@@ -5,8 +5,8 @@ export const INDUSTRY_SECTORS = [
   "Financial and Professional Services",
   "Healthcare and Pharmaceuticals",
   "Hospitality, Tourism, and Entertainment",
-  "Retail and E-commerce",
   "Information and Communication Technology",
+  "Retail and E-commerce",
   "Transportation, Logistics, and Supply Chain",
   "Others",
 ] as const;
