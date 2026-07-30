@@ -149,38 +149,53 @@ export interface GroupResult {
  * 3. 5th -> Delta, 6th -> Gamma, 7th -> Beta, 8th -> Alpha (continues snaking)
  * 4. Rebalance so all groups have equal size (+/- 1).
  */
-export function sortIntoGroups(individuals: Individual[], groupCount = 4): GroupResult {
+export function sortIntoGroups(
+  individuals: Individual[],
+  groupCount = 4,
+  basis: GroupingBasis = "first",
+): GroupResult {
   const n = individuals.length;
   const base = Math.floor(n / groupCount);
   const extra = n % groupCount;
   const targetSizes = Array.from({ length: groupCount }, (_, i) => base + (i < extra ? 1 : 0));
 
   const groups: Individual[][] = Array.from({ length: groupCount }, () => []);
-  if (n === 0) return { groups, targetSizes };
+  if (n === 0) return { groups, targetSizes, basis };
 
-  // 1. Bucket by industry sector (Others split by the free-text value)
-  const indKey = (s: Individual) => (s.industry === "Others" ? `Others::${s.industryOther ?? ""}` : s.industry);
+  const primaryKey = (s: Individual) =>
+    basis === "first"
+      ? s.industry === "Others"
+        ? `Others::${s.industryOther ?? ""}`
+        : s.industry
+      : s.expertise === "Others"
+        ? `Others::${s.expertiseOther ?? ""}`
+        : s.expertise;
+  const secondaryKey = (s: Individual) =>
+    basis === "first" ? `${s.expertise}::${s.expertiseOther ?? ""}` : `${s.industry}::${s.industryOther ?? ""}`;
+
+  // 1. Bucket by the chosen primary category (Others split by the free-text value)
   const buckets = new Map<string, Individual[]>();
   for (const s of individuals) {
-    const k = indKey(s);
+    const k = primaryKey(s);
     if (!buckets.has(k)) buckets.set(k, []);
     buckets.get(k)!.push(s);
   }
 
-  // Order buckets by size (desc); keep same-expertise members adjacent inside a bucket
+  // Order buckets by size (desc); keep same-secondary-category members adjacent inside a bucket
   const ordered = Array.from(buckets.values())
     .map((arr) => {
-      const byExp = new Map<string, Individual[]>();
+      const bySecond = new Map<string, Individual[]>();
       for (const s of arr) {
-        const ek = `${s.expertise}::${s.expertiseOther ?? ""}`;
-        if (!byExp.has(ek)) byExp.set(ek, []);
-        byExp.get(ek)!.push(s);
+        const ek = secondaryKey(s);
+        if (!bySecond.has(ek)) bySecond.set(ek, []);
+        bySecond.get(ek)!.push(s);
       }
-      return Array.from(byExp.values())
+      return Array.from(bySecond.values())
         .sort((a, b) => b.length - a.length)
         .flat();
     })
     .sort((a, b) => b.length - a.length);
+
 
   // 2 & 3. Snake order: 0,1,2,3,3,2,1,0,0,1,...
   ordered.forEach((bucket, idx) => {
