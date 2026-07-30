@@ -42,6 +42,7 @@ export const finishSession = createServerFn({ method: "POST" })
         code: z.string().min(1),
         hostToken: z.string().min(1),
         groupCount: z.number().int().min(2).max(4).optional(),
+        basis: z.enum(["first", "second"]).optional(),
       })
       .parse(input),
   )
