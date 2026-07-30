@@ -217,8 +217,8 @@ export function sortIntoGroups(
     let bestIdx = 0;
     let bestDelta = -Infinity;
     src.forEach((person, i) => {
-      const loss = src.reduce((sum, m) => (m.id === person.id ? sum : sum + pairScore(person, m)), 0);
-      const gain = dst.reduce((sum, m) => sum + pairScore(person, m), 0);
+      const loss = src.reduce((sum, m) => (m.id === person.id ? sum : sum + fitScore(person, m, basis)), 0);
+      const gain = dst.reduce((sum, m) => sum + fitScore(person, m, basis), 0);
       const delta = gain - loss;
       if (delta > bestDelta) {
         bestDelta = delta;
@@ -228,8 +228,35 @@ export function sortIntoGroups(
     dst.push(src.splice(bestIdx, 1)[0]);
   }
 
-  return { groups, targetSizes };
+  return { groups, targetSizes, basis };
 }
+
+/** pairScore oriented to the chosen primary category. */
+export function fitScore(a: Individual, b: Individual, basis: GroupingBasis = "first"): number {
+  if (basis === "first") return pairScore(a, b);
+  // Swap the two categories so the second one dominates.
+  const flip = (p: Individual): Individual => ({
+    ...p,
+    industry: p.expertise as unknown as Individual["industry"],
+    industryOther: p.expertiseOther,
+    expertise: p.industry as unknown as Individual["expertise"],
+    expertiseOther: p.industryOther,
+  });
+  const fa = flip(a);
+  const fb = flip(b);
+  const sameExp = fa.expertise === fb.expertise && fa.expertise !== "Others" ? 1000 : 0;
+  const sameExpOther =
+    fa.expertise === "Others" && fb.expertise === "Others" && fa.expertiseOther === fb.expertiseOther ? 1000 : 0;
+  const sameInd = fa.industry === fb.industry && fa.industry !== "Others" ? 500 : 0;
+  const sameIndOther =
+    fa.industry === "Others" && fb.industry === "Others" && fa.industryOther === fb.industryOther ? 500 : 0;
+  const simInd = EXPERTISE_SIMILARITY[a.expertise]?.[b.expertise];
+  const simIndScore = simInd ? { High: 300, Medium: 200, Low: 100 }[simInd] : 0;
+  const simExp = INDUSTRY_SIMILARITY[a.industry]?.[b.industry];
+  const simExpScore = simExp ? { High: 30, Medium: 20, Low: 10 }[simExp] : 0;
+  return sameExp + sameExpOther + sameInd + sameIndOther + simIndScore + simExpScore;
+}
+
 
 /**
  * Incremental assignment: keeps every previously grouped individual exactly
