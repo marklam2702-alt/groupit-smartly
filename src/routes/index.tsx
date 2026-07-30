@@ -496,6 +496,10 @@ function SessionView({
             >
               Copy link
             </Button>
+            <Button variant="ghost" size="sm" onClick={onExit}>
+              Exit
+            </Button>
+
           </div>
         </header>
 
