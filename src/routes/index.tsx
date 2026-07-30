@@ -439,15 +439,39 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
                 </p>
               ) : (
                 <ul className="max-h-[420px] space-y-2 overflow-auto pr-1">
-                  {rows.map((s, idx) => (
-                    <li
-                      key={s.id}
-                      className="flex items-center gap-2 rounded-md border border-border bg-card p-3"
-                    >
-                      <span className="text-xs text-muted-foreground">#{idx + 1}</span>
-                      <span className="truncate font-medium text-foreground">{s.nick_name}</span>
-                    </li>
-                  ))}
+                  {rows.map((s, idx) => {
+                    const isNew = !!result && !groupedIds.has(s.id);
+                    return (
+                      <li
+                        key={s.id}
+                        className={`flex items-center gap-2 rounded-md border p-3 ${
+                          isNew
+                            ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                            : "border-border bg-card"
+                        }`}
+                      >
+                        <span className="text-xs text-muted-foreground">#{idx + 1}</span>
+                        <span className="truncate font-medium">{s.nick_name}</span>
+                        {isNew && (
+                          <Badge variant="outline" className="border-emerald-500 text-[10px]">
+                            new
+                          </Badge>
+                        )}
+                        {isHost && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-auto text-muted-foreground hover:text-destructive"
+                            disabled={busy}
+                            onClick={() => handleDelete(s.id)}
+                            aria-label={`Delete ${s.nick_name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </CardContent>
