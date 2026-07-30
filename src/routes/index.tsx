@@ -266,6 +266,7 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
   const [expertise, setExpertise] = useState<Expertise | "">("");
   const [expertiseOther, setExpertiseOther] = useState("");
   const [busy, setBusy] = useState(false);
+  const [groupCountChoice, setGroupCountChoice] = useState(4);
   const nickRef = useRef<HTMLInputElement>(null);
 
   const runFinish = useServerFn(finishSession);
@@ -274,7 +275,10 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
   const isHost = !!hostToken;
   const finished = session?.status === "finished";
   const result = session?.result ?? null;
+  const groupCount = result?.groups.length ?? groupCountChoice;
+  const groupCountLocked = !!result;
   const groupedIds = new Set(result ? result.groups.flat().map((g) => g.id) : []);
+
 
   const loadAll = useCallback(async () => {
     const { data: s } = await supabase
