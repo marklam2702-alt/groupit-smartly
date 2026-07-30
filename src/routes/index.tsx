@@ -185,6 +185,41 @@ function Page() {
                 </Button>
               </CardContent>
             </Card>
+
+            <Card className="sm:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-base">Return as creator</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Already created a session on another device? Enter the session code and the
+                  creator password shown on your creator screen.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input
+                    value={hostCode}
+                    onChange={(e) => setHostCode(e.target.value.toUpperCase())}
+                    placeholder="Session code"
+                    maxLength={10}
+                  />
+                  <Input
+                    value={hostPassword}
+                    onChange={(e) => setHostPassword(e.target.value)}
+                    placeholder="Creator password"
+                    autoComplete="off"
+                    onKeyDown={(e) => e.key === "Enter" && handleHostLogin()}
+                  />
+                </div>
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  disabled={busy || !hostCode.trim() || !hostPassword.trim()}
+                  onClick={handleHostLogin}
+                >
+                  Unlock creator access
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
