@@ -416,11 +416,10 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
                     )}
                   </div>
 
-                  <Button onClick={handleAdd} disabled={!canInput || busy} className="w-full">
-                    Input
-                  </Button>
-                </>
-              )}
+              <Button onClick={handleAdd} disabled={!canInput || busy} className="w-full">
+                Input
+              </Button>
+
             </CardContent>
           </Card>
 
