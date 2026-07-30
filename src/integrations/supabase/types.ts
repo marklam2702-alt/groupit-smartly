@@ -57,6 +57,7 @@ export type Database = {
       }
       sessions: {
         Row: {
+          categories: Json | null
           code: string
           created_at: string
           host_token: string
@@ -65,6 +66,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          categories?: Json | null
           code: string
           created_at?: string
           host_token: string
@@ -73,6 +75,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          categories?: Json | null
           code?: string
           created_at?: string
           host_token?: string

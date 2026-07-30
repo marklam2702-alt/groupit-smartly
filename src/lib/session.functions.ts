@@ -157,7 +157,41 @@ export const updateHostPassword = createServerFn({ method: "POST" })
     return { hostToken: data.newPassword };
   });
 
+/** Host can replace the two category definitions used by the input form. */
+export const updateCategories = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z
+      .object({
+        code: z.string().min(1),
+        hostToken: z.string().min(1),
+        categories: z.object({
+          first: z.object({ name: z.string().min(1), items: z.array(z.string().min(1)).min(1) }),
+          second: z.object({ name: z.string().min(1), items: z.array(z.string().min(1)).min(1) }),
+        }),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: session, error } = await supabaseAdmin
+      .from("sessions")
+      .select("id, host_token")
+      .eq("code", data.code.toUpperCase())
+      .maybeSingle();
+    if (error) throw error;
+    if (!session) throw new Error("Session not found");
+    if (session.host_token !== data.hostToken) throw new Error("Only the host can do this");
+
+    const { error: upError } = await supabaseAdmin
+      .from("sessions")
+      .update({ categories: data.categories })
+      .eq("id", session.id);
+    if (upError) throw upError;
+    return { ok: true };
+  });
+
 export const deleteIndividual = createServerFn({ method: "POST" })
+
   .inputValidator((input) =>
     z
       .object({ code: z.string().min(1), hostToken: z.string().min(1), id: z.string().uuid() })
