@@ -23,7 +23,7 @@ import {
   type GroupResult,
   type Industry,
 } from "@/lib/grouping";
-import { Trash2 } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 import {
   createSession,
   deleteIndividual,
@@ -599,7 +599,7 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
         </div>
 
         {isHost && (
-          <div className="mt-8 flex justify-center gap-3">
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button
               size="lg"
               onClick={handleFinish}
@@ -607,6 +607,23 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
               className="min-w-48"
             >
               {finished ? "Run grouping again" : "FINISH"}
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={handleExport}
+              disabled={busy || !result}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export .xlsx
+            </Button>
+            <Button
+              size="lg"
+              variant="destructive"
+              onClick={handleClear}
+              disabled={busy || !result}
+            >
+              Clear result
             </Button>
           </div>
         )}
