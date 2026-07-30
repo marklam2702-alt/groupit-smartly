@@ -28,6 +28,7 @@ import {
   createSession,
   deleteIndividual,
   finishSession,
+  reopenSession,
   verifyHost,
 } from "@/lib/session.functions";
 
@@ -269,6 +270,7 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
 
   const runFinish = useServerFn(finishSession);
   const runDelete = useServerFn(deleteIndividual);
+  const runClear = useServerFn(reopenSession);
   const isHost = !!hostToken;
   const finished = session?.status === "finished";
   const result = session?.result ?? null;
