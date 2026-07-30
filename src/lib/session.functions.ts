@@ -11,9 +11,11 @@ function randomCode(len = 6) {
   return out;
 }
 
-function randomToken() {
-  const bytes = crypto.getRandomValues(new Uint8Array(24));
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+function randomToken(len = 8) {
+  let out = "";
+  const bytes = crypto.getRandomValues(new Uint8Array(len));
+  for (let i = 0; i < len; i++) out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
+  return out;
 }
 
 export const createSession = createServerFn({ method: "POST" }).handler(async () => {
@@ -120,6 +122,40 @@ export const verifyHost = createServerFn({ method: "POST" })
     return { code: session.code };
   });
 
+
+/** Creator can change their password (6-10 characters). */
+export const updateHostPassword = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z
+      .object({
+        code: z.string().min(1),
+        hostToken: z.string().min(1),
+        newPassword: z
+          .string()
+          .trim()
+          .min(6, "Password must be 6-10 characters")
+          .max(10, "Password must be 6-10 characters"),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: session, error } = await supabaseAdmin
+      .from("sessions")
+      .select("id, host_token")
+      .eq("code", data.code.toUpperCase())
+      .maybeSingle();
+    if (error) throw error;
+    if (!session) throw new Error("Session not found");
+    if (session.host_token !== data.hostToken) throw new Error("Only the creator can do this");
+
+    const { error: upError } = await supabaseAdmin
+      .from("sessions")
+      .update({ host_token: data.newPassword })
+      .eq("id", session.id);
+    if (upError) throw upError;
+    return { hostToken: data.newPassword };
+  });
 
 export const deleteIndividual = createServerFn({ method: "POST" })
   .inputValidator((input) =>

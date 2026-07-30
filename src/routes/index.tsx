@@ -29,6 +29,7 @@ import {
   deleteIndividual,
   finishSession,
   reopenSession,
+  updateHostPassword,
   verifyHost,
 } from "@/lib/session.functions";
 
@@ -273,6 +274,10 @@ function Page() {
     <SessionView
       code={code}
       hostToken={hostToken}
+      onHostTokenChange={(t) => {
+        setHostToken(t);
+        if (code) saveHostToken(code, t);
+      }}
       onExit={() => {
         setCode(null);
         setHostToken(null);
@@ -289,10 +294,12 @@ function SessionView({
   code,
   hostToken,
   onExit,
+  onHostTokenChange,
 }: {
   code: string;
   hostToken: string | null;
   onExit: () => void;
+  onHostTokenChange: (token: string) => void;
 }) {
   const [session, setSession] = useState<SessionRow | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
@@ -304,9 +311,12 @@ function SessionView({
   const [busy, setBusy] = useState(false);
   const [groupCountChoice, setGroupCountChoice] = useState(4);
   const [showSessionPassword, setShowSessionPassword] = useState(false);
+  const [editingPassword, setEditingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
   const nickRef = useRef<HTMLInputElement>(null);
 
   const runFinish = useServerFn(finishSession);
+  const runChangePassword = useServerFn(updateHostPassword);
   const runDelete = useServerFn(deleteIndividual);
   const runClear = useServerFn(reopenSession);
   const isHost = !!hostToken;
@@ -438,6 +448,27 @@ function SessionView({
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!hostToken) return;
+    const pw = newPassword.trim();
+    if (pw.length < 6 || pw.length > 10) {
+      toast.error("Password must be 6-10 characters");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await runChangePassword({ data: { code, hostToken, newPassword: pw } });
+      onHostTokenChange(res.hostToken);
+      setEditingPassword(false);
+      setNewPassword("");
+      toast.success("Creator password updated");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update password");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleExport = async () => {
     if (!result) return;
     const XLSX = await import("xlsx");
@@ -479,34 +510,83 @@ function SessionView({
               {isHost && " You are the creator."}
             </p>
             {isHost && hostToken && (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Creator password{" "}
-                <span className="font-mono text-foreground">
-                  {showSessionPassword ? hostToken : "•".repeat(hostToken.length)}
-                </span>{" "}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowSessionPassword((v) => !v)}
-                  aria-label={showSessionPassword ? "Hide password" : "Show password"}
-                >
-                  {showSessionPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(hostToken);
-                    toast.success("Creator password copied");
-                  }}
-                >
-                  Copy
-                </Button>
-                <br />
-                Keep it private — use it with the session code to return as creator from another
-                device.
-              </p>
+              <div className="mt-2 text-sm text-muted-foreground">
+                {editingPassword ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span>New creator password</span>
+                    <Input
+                      className="h-8 w-44"
+                      value={newPassword}
+                      maxLength={10}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      type={showSessionPassword ? "text" : "password"}
+                      placeholder="6-10 characters"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowSessionPassword((v) => !v)}
+                      aria-label={showSessionPassword ? "Hide password" : "Show password"}
+                    >
+                      {showSessionPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </Button>
+                    <Button size="sm" disabled={busy} onClick={handleChangePassword}>
+                      Save
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setEditingPassword(false);
+                        setNewPassword("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span>Creator password</span>
+                    <span className="font-mono text-foreground">
+                      {showSessionPassword ? hostToken : "•".repeat(hostToken.length)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowSessionPassword((v) => !v)}
+                      aria-label={showSessionPassword ? "Hide password" : "Show password"}
+                    >
+                      {showSessionPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(hostToken);
+                        toast.success("Creator password copied");
+                      }}
+                    >
+                      Copy
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setNewPassword("");
+                        setEditingPassword(true);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  </div>
+                )}
+                <p className="mt-1">
+                  Keep it private — use it with the session code to return as creator from another
+                  device.
+                </p>
+              </div>
             )}
           </div>
           <div className="flex items-center gap-2">
