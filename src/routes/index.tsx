@@ -294,10 +294,12 @@ function SessionView({
   code,
   hostToken,
   onExit,
+  onHostTokenChange,
 }: {
   code: string;
   hostToken: string | null;
   onExit: () => void;
+  onHostTokenChange: (token: string) => void;
 }) {
   const [session, setSession] = useState<SessionRow | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
@@ -309,9 +311,12 @@ function SessionView({
   const [busy, setBusy] = useState(false);
   const [groupCountChoice, setGroupCountChoice] = useState(4);
   const [showSessionPassword, setShowSessionPassword] = useState(false);
+  const [editingPassword, setEditingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
   const nickRef = useRef<HTMLInputElement>(null);
 
   const runFinish = useServerFn(finishSession);
+  const runChangePassword = useServerFn(updateHostPassword);
   const runDelete = useServerFn(deleteIndividual);
   const runClear = useServerFn(reopenSession);
   const isHost = !!hostToken;
