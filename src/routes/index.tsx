@@ -23,11 +23,12 @@ import {
   type GroupResult,
   type Industry,
 } from "@/lib/grouping";
-import { Trash2 } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 import {
   createSession,
   deleteIndividual,
   finishSession,
+  reopenSession,
   verifyHost,
 } from "@/lib/session.functions";
 
@@ -269,6 +270,7 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
 
   const runFinish = useServerFn(finishSession);
   const runDelete = useServerFn(deleteIndividual);
+  const runClear = useServerFn(reopenSession);
   const isHost = !!hostToken;
   const finished = session?.status === "finished";
   const result = session?.result ?? null;
@@ -379,6 +381,45 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
       setBusy(false);
     }
   };
+
+  const handleClear = async () => {
+    if (!hostToken) return;
+    setBusy(true);
+    try {
+      await runClear({ data: { code, hostToken } });
+      await loadAll();
+      toast.success("Group result cleared");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not clear result");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!result) return;
+    const XLSX = await import("xlsx");
+    const rowsOut: (string | null)[][] = [
+      ["", "Group", "Nick Name", "Industry Sector", "Area of Expertise"],
+    ];
+    result.groups.forEach((g, i) => {
+      g.forEach((s) => {
+        rowsOut.push([
+          "",
+          GROUP_NAMES[i] ?? String(i + 1),
+          s.nickName,
+          s.industry === "Others" ? (s.industryOther ?? "Others") : s.industry,
+          s.expertise === "Others" ? (s.expertiseOther ?? "Others") : s.expertise,
+        ]);
+      });
+    });
+    const ws = XLSX.utils.aoa_to_sheet(rowsOut);
+    ws["!cols"] = [{ wch: 10 }, { wch: 12 }, { wch: 20 }, { wch: 42 }, { wch: 46 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    XLSX.writeFile(wb, `Group_${code}.xlsx`);
+  };
+
 
   const shareUrl =
     typeof window !== "undefined" ? `${window.location.origin}/?code=${code}` : "";
@@ -558,7 +599,7 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
         </div>
 
         {isHost && (
-          <div className="mt-8 flex justify-center gap-3">
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button
               size="lg"
               onClick={handleFinish}
@@ -566,6 +607,23 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
               className="min-w-48"
             >
               {finished ? "Run grouping again" : "FINISH"}
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={handleExport}
+              disabled={busy || !result}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export .xlsx
+            </Button>
+            <Button
+              size="lg"
+              variant="destructive"
+              onClick={handleClear}
+              disabled={busy || !result}
+            >
+              Clear result
             </Button>
           </div>
         )}
