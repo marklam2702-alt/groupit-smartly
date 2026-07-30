@@ -308,14 +308,15 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
     }
   };
 
-  const handleReopen = async () => {
+  const handleDelete = async (id: string) => {
     if (!hostToken) return;
     setBusy(true);
     try {
-      await runReopen({ data: { code, hostToken } });
+      await runDelete({ data: { code, hostToken, id } });
       await loadAll();
+      toast.success("Removed");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not reopen");
+      toast.error(e instanceof Error ? e.message : "Could not delete");
     } finally {
       setBusy(false);
     }
