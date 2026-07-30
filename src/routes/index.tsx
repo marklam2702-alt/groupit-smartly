@@ -456,20 +456,14 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
 
         {isHost && (
           <div className="mt-8 flex justify-center gap-3">
-            {!finished ? (
-              <Button
-                size="lg"
-                onClick={handleFinish}
-                disabled={busy || rows.length === 0}
-                className="min-w-48"
-              >
-                FINISH
-              </Button>
-            ) : (
-              <Button size="lg" variant="outline" onClick={handleReopen} disabled={busy}>
-                Reopen for more entries
-              </Button>
-            )}
+            <Button
+              size="lg"
+              onClick={handleFinish}
+              disabled={busy || rows.length === 0}
+              className="min-w-48"
+            >
+              {finished ? "Run grouping again" : "FINISH"}
+            </Button>
           </div>
         )}
         {!isHost && !finished && (
