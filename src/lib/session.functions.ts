@@ -11,9 +11,11 @@ function randomCode(len = 6) {
   return out;
 }
 
-function randomToken() {
-  const bytes = crypto.getRandomValues(new Uint8Array(24));
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+function randomToken(len = 8) {
+  let out = "";
+  const bytes = crypto.getRandomValues(new Uint8Array(len));
+  for (let i = 0; i < len; i++) out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
+  return out;
 }
 
 export const createSession = createServerFn({ method: "POST" }).handler(async () => {
