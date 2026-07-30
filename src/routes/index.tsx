@@ -303,6 +303,7 @@ function SessionView({
   const [expertiseOther, setExpertiseOther] = useState("");
   const [busy, setBusy] = useState(false);
   const [groupCountChoice, setGroupCountChoice] = useState(4);
+  const [showSessionPassword, setShowSessionPassword] = useState(false);
   const nickRef = useRef<HTMLInputElement>(null);
 
   const runFinish = useServerFn(finishSession);
