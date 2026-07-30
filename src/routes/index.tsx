@@ -15,20 +15,20 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
+import { GROUP_NAMES, type GroupResult } from "@/lib/grouping";
 import {
-  AREAS_OF_EXPERTISE,
-  GROUP_NAMES,
-  INDUSTRY_SECTORS,
-  type Expertise,
-  type GroupResult,
-  type Industry,
-} from "@/lib/grouping";
-import { Download, Trash2, Eye, EyeOff } from "lucide-react";
+  categoriesToRows,
+  normalizeCategories,
+  rowsToCategories,
+  type CategoryConfig,
+} from "@/lib/categories";
+import { Download, Trash2, Eye, EyeOff, Upload } from "lucide-react";
 import {
   createSession,
   deleteIndividual,
   finishSession,
   reopenSession,
+  updateCategories,
   updateHostPassword,
   verifyHost,
 } from "@/lib/session.functions";
@@ -70,6 +70,7 @@ type SessionRow = {
   code: string;
   status: string;
   result: GroupResult | null;
+  categories: unknown;
 };
 
 const HOST_KEY = "groupit.host";
@@ -304,9 +305,9 @@ function SessionView({
   const [session, setSession] = useState<SessionRow | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
   const [nickName, setNickName] = useState("");
-  const [industry, setIndustry] = useState<Industry | "">("");
+  const [industry, setIndustry] = useState("");
   const [industryOther, setIndustryOther] = useState("");
-  const [expertise, setExpertise] = useState<Expertise | "">("");
+  const [expertise, setExpertise] = useState("");
   const [expertiseOther, setExpertiseOther] = useState("");
   const [busy, setBusy] = useState(false);
   const [groupCountChoice, setGroupCountChoice] = useState(4);
@@ -314,23 +315,26 @@ function SessionView({
   const [editingPassword, setEditingPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const nickRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const runFinish = useServerFn(finishSession);
   const runChangePassword = useServerFn(updateHostPassword);
   const runDelete = useServerFn(deleteIndividual);
   const runClear = useServerFn(reopenSession);
+  const runUpdateCategories = useServerFn(updateCategories);
   const isHost = !!hostToken;
   const finished = session?.status === "finished";
   const result = session?.result ?? null;
   const groupCount = result?.groups.length ?? groupCountChoice;
   const groupCountLocked = !!result;
   const groupedIds = new Set(result ? result.groups.flat().map((g) => g.id) : []);
+  const cats: CategoryConfig = normalizeCategories(session?.categories);
 
 
   const loadAll = useCallback(async () => {
     const { data: s } = await supabase
       .from("sessions")
-      .select("id, code, status, result")
+      .select("id, code, status, result, categories")
       .eq("code", code)
       .maybeSingle();
     if (!s) return;
@@ -473,7 +477,7 @@ function SessionView({
     if (!result) return;
     const XLSX = await import("xlsx");
     const rowsOut: (string | null)[][] = [
-      ["", "Group", "Nick Name", "Industry Sector", "Area of Expertise"],
+      ["", "Group", "Nick Name", cats.first.name, cats.second.name],
     ];
     result.groups.forEach((g, i) => {
       g.forEach((s) => {
@@ -493,6 +497,39 @@ function SessionView({
     XLSX.writeFile(wb, `Group_${code}.xlsx`);
   };
 
+
+  const handleDownloadCategories = async () => {
+    const XLSX = await import("xlsx");
+    const ws = XLSX.utils.aoa_to_sheet(categoriesToRows(cats));
+    ws["!cols"] = [{ wch: 16 }, { wch: 50 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    XLSX.writeFile(wb, "Category.xlsx");
+  };
+
+  const handleUploadCategories = async (file: File) => {
+    if (!hostToken) return;
+    setBusy(true);
+    try {
+      const XLSX = await import("xlsx");
+      const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, blankrows: true });
+      const next = rowsToCategories(rows);
+      await runUpdateCategories({ data: { code, hostToken, categories: next } });
+      setIndustry("");
+      setIndustryOther("");
+      setExpertise("");
+      setExpertiseOther("");
+      await loadAll();
+      toast.success("Categories updated");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not read the file");
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
 
   const shareUrl =
     typeof window !== "undefined" ? `${window.location.origin}/?code=${code}` : "";
@@ -612,8 +649,43 @@ function SessionView({
 
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
               <CardTitle>Add individual</CardTitle>
+              {isHost && (
+                <div className="flex items-center gap-1">
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept=".xlsx"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleUploadCategories(f);
+                    }}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    title="Download category template"
+                    aria-label="Download category template"
+                    onClick={handleDownloadCategories}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    title="Upload category file"
+                    aria-label="Upload category file"
+                    disabled={busy}
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    <Upload className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
 
@@ -631,13 +703,13 @@ function SessionView({
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Industry Sector</Label>
-                    <Select value={industry} onValueChange={(v) => setIndustry(v as Industry)}>
+                    <Label>{cats.first.name}</Label>
+                    <Select value={industry} onValueChange={setIndustry}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select an industry" />
+                        <SelectValue placeholder={`Select ${cats.first.name.toLowerCase()}`} />
                       </SelectTrigger>
                       <SelectContent>
-                        {INDUSTRY_SECTORS.map((i) => (
+                        {cats.first.items.map((i) => (
                           <SelectItem key={i} value={i}>
                             {i}
                           </SelectItem>
@@ -648,20 +720,20 @@ function SessionView({
                       <Input
                         value={industryOther}
                         onChange={(e) => setIndustryOther(e.target.value)}
-                        placeholder="Please specify industry"
+                        placeholder="Please specify"
                         maxLength={60}
                       />
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Area of Expertise</Label>
-                    <Select value={expertise} onValueChange={(v) => setExpertise(v as Expertise)}>
+                    <Label>{cats.second.name}</Label>
+                    <Select value={expertise} onValueChange={setExpertise}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select an area of expertise" />
+                        <SelectValue placeholder={`Select ${cats.second.name.toLowerCase()}`} />
                       </SelectTrigger>
                       <SelectContent>
-                        {AREAS_OF_EXPERTISE.map((i) => (
+                        {cats.second.items.map((i) => (
                           <SelectItem key={i} value={i}>
                             {i}
                           </SelectItem>
@@ -672,7 +744,7 @@ function SessionView({
                       <Input
                         value={expertiseOther}
                         onChange={(e) => setExpertiseOther(e.target.value)}
-                        placeholder="Please specify area of expertise"
+                        placeholder="Please specify"
                         maxLength={60}
                       />
                     )}
