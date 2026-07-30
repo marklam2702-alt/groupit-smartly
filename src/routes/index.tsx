@@ -93,6 +93,7 @@ function Page() {
   const [joinCode, setJoinCode] = useState("");
   const [hostCode, setHostCode] = useState("");
   const [hostPassword, setHostPassword] = useState("");
+  const [showHostPassword, setShowHostPassword] = useState(false);
   const [hostToken, setHostToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
