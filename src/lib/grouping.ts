@@ -133,9 +133,13 @@ export function pairScore(a: Individual, b: Individual): number {
 
 export const GROUP_NAMES = ["Alpha", "Beta", "Gamma", "Delta"] as const;
 
+/** Which category drives the bucketing: the first (industry) or second (expertise). */
+export type GroupingBasis = "first" | "second";
+
 export interface GroupResult {
   groups: Individual[][];
   targetSizes: number[];
+  basis?: GroupingBasis;
 }
 
 /**
