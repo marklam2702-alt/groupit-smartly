@@ -23,7 +23,13 @@ import {
   type GroupResult,
   type Industry,
 } from "@/lib/grouping";
-import { createSession, finishSession, reopenSession } from "@/lib/session.functions";
+import { Trash2 } from "lucide-react";
+import {
+  createSession,
+  deleteIndividual,
+  finishSession,
+  reopenSession,
+} from "@/lib/session.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
