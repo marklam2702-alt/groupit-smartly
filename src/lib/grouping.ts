@@ -219,3 +219,41 @@ export function sortIntoGroups(individuals: Individual[], groupCount = 4): Group
 
   return { groups, targetSizes };
 }
+
+/**
+ * Incremental assignment: keeps every previously grouped individual exactly
+ * where they are and only places the newcomers into the best-fitting group
+ * that still has room (keeping group sizes equal +/- 1).
+ */
+export function assignNewIndividuals(
+  existingGroups: Individual[][],
+  newcomers: Individual[],
+  groupCount = 4,
+): GroupResult {
+  const groups: Individual[][] = Array.from(
+    { length: groupCount },
+    (_, i) => [...(existingGroups[i] ?? [])],
+  );
+  const n = groups.reduce((sum, g) => sum + g.length, 0) + newcomers.length;
+  const base = Math.floor(n / groupCount);
+  const extra = n % groupCount;
+  const targetSizes = Array.from({ length: groupCount }, (_, i) => base + (i < extra ? 1 : 0));
+
+  for (const person of newcomers) {
+    let bestIdx = 0;
+    let bestScore = -Infinity;
+    for (let i = 0; i < groupCount; i++) {
+      // Groups already at or above their target only take newcomers if nothing else can.
+      const roomPenalty = groups[i].length >= targetSizes[i] ? 1_000_000 : 0;
+      const fit = groups[i].reduce((sum, m) => sum + pairScore(person, m), 0);
+      const score = fit - roomPenalty - groups[i].length;
+      if (score > bestScore) {
+        bestScore = score;
+        bestIdx = i;
+      }
+    }
+    groups[bestIdx].push(person);
+  }
+
+  return { groups, targetSizes };
+}
