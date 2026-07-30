@@ -234,27 +234,18 @@ export function sortIntoGroups(
 /** pairScore oriented to the chosen primary category. */
 export function fitScore(a: Individual, b: Individual, basis: GroupingBasis = "first"): number {
   if (basis === "first") return pairScore(a, b);
-  // Swap the two categories so the second one dominates.
-  const flip = (p: Individual): Individual => ({
-    ...p,
-    industry: p.expertise as unknown as Individual["industry"],
-    industryOther: p.expertiseOther,
-    expertise: p.industry as unknown as Individual["expertise"],
-    expertiseOther: p.industryOther,
-  });
-  const fa = flip(a);
-  const fb = flip(b);
-  const sameExp = fa.expertise === fb.expertise && fa.expertise !== "Others" ? 1000 : 0;
-  const sameExpOther =
-    fa.expertise === "Others" && fb.expertise === "Others" && fa.expertiseOther === fb.expertiseOther ? 1000 : 0;
-  const sameInd = fa.industry === fb.industry && fa.industry !== "Others" ? 500 : 0;
-  const sameIndOther =
-    fa.industry === "Others" && fb.industry === "Others" && fa.industryOther === fb.industryOther ? 500 : 0;
-  const simInd = EXPERTISE_SIMILARITY[a.expertise]?.[b.expertise];
-  const simIndScore = simInd ? { High: 300, Medium: 200, Low: 100 }[simInd] : 0;
-  const simExp = INDUSTRY_SIMILARITY[a.industry]?.[b.industry];
-  const simExpScore = simExp ? { High: 30, Medium: 20, Low: 10 }[simExp] : 0;
-  return sameExp + sameExpOther + sameInd + sameIndOther + simIndScore + simExpScore;
+  // Second category dominates: expertise takes the "primary" weights.
+  const samePrimary = a.expertise === b.expertise && a.expertise !== "Others" ? 1000 : 0;
+  const samePrimaryOther =
+    a.expertise === "Others" && b.expertise === "Others" && a.expertiseOther === b.expertiseOther ? 1000 : 0;
+  const sameSecondary = a.industry === b.industry && a.industry !== "Others" ? 500 : 0;
+  const sameSecondaryOther =
+    a.industry === "Others" && b.industry === "Others" && a.industryOther === b.industryOther ? 500 : 0;
+  const simPrimary = EXPERTISE_SIMILARITY[a.expertise]?.[b.expertise];
+  const simPrimaryScore = simPrimary ? { High: 300, Medium: 200, Low: 100 }[simPrimary] : 0;
+  const simSecondary = INDUSTRY_SIMILARITY[a.industry]?.[b.industry];
+  const simSecondaryScore = simSecondary ? { High: 30, Medium: 20, Low: 10 }[simSecondary] : 0;
+  return samePrimary + samePrimaryOther + sameSecondary + sameSecondaryOther + simPrimaryScore + simSecondaryScore;
 }
 
 
