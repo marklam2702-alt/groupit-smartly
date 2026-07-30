@@ -91,6 +91,26 @@ export const finishSession = createServerFn({ method: "POST" })
     return result;
   });
 
+/** Re-claim creator rights on another device using the session code + creator password. */
+export const verifyHost = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z.object({ code: z.string().min(1), hostToken: z.string().min(1) }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: session, error } = await supabaseAdmin
+      .from("sessions")
+      .select("code, host_token")
+      .eq("code", data.code.toUpperCase())
+      .maybeSingle();
+    if (error) throw error;
+    if (!session || session.host_token !== data.hostToken.trim()) {
+      throw new Error("Invalid session code or creator password");
+    }
+    return { code: session.code };
+  });
+
+
 export const deleteIndividual = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z
