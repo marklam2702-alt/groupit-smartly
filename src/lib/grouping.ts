@@ -6,7 +6,7 @@ export const INDUSTRY_SECTORS = [
   "Healthcare and Pharmaceuticals",
   "Hospitality, Tourism, and Entertainment",
   "Retail and E-commerce",
-  "Technology and Information Technology (IT)",
+  "Information and Communication Technology",
   "Transportation, Logistics, and Supply Chain",
   "Others",
 ] as const;
@@ -117,14 +117,10 @@ export function pairScore(a: Individual, b: Individual): number {
   // same expertise > same industry > similar industry (H>M>L) > similar expertise (H>M>L)
   const sameExp = a.expertise === b.expertise && a.expertise !== "Others" ? 1000 : 0;
   const sameExpOther =
-    a.expertise === "Others" && b.expertise === "Others" && a.expertiseOther === b.expertiseOther
-      ? 1000
-      : 0;
+    a.expertise === "Others" && b.expertise === "Others" && a.expertiseOther === b.expertiseOther ? 1000 : 0;
   const sameInd = a.industry === b.industry && a.industry !== "Others" ? 500 : 0;
   const sameIndOther =
-    a.industry === "Others" && b.industry === "Others" && a.industryOther === b.industryOther
-      ? 500
-      : 0;
+    a.industry === "Others" && b.industry === "Others" && a.industryOther === b.industryOther ? 500 : 0;
 
   const simInd = INDUSTRY_SIMILARITY[a.industry]?.[b.industry];
   const simIndScore = simInd ? { High: 300, Medium: 200, Low: 100 }[simInd] : 0;
@@ -159,8 +155,7 @@ export function sortIntoGroups(individuals: Individual[], groupCount = 4): Group
   if (n === 0) return { groups, targetSizes };
 
   // 1. Bucket by industry sector (Others split by the free-text value)
-  const indKey = (s: Individual) =>
-    s.industry === "Others" ? `Others::${s.industryOther ?? ""}` : s.industry;
+  const indKey = (s: Individual) => (s.industry === "Others" ? `Others::${s.industryOther ?? ""}` : s.industry);
   const buckets = new Map<string, Individual[]>();
   for (const s of individuals) {
     const k = indKey(s);
@@ -203,10 +198,7 @@ export function sortIntoGroups(individuals: Individual[], groupCount = 4): Group
     let bestIdx = 0;
     let bestDelta = -Infinity;
     src.forEach((person, i) => {
-      const loss = src.reduce(
-        (sum, m) => (m.id === person.id ? sum : sum + pairScore(person, m)),
-        0,
-      );
+      const loss = src.reduce((sum, m) => (m.id === person.id ? sum : sum + pairScore(person, m)), 0);
       const gain = dst.reduce((sum, m) => sum + pairScore(person, m), 0);
       const delta = gain - loss;
       if (delta > bestDelta) {
@@ -230,10 +222,7 @@ export function assignNewIndividuals(
   newcomers: Individual[],
   groupCount = 4,
 ): GroupResult {
-  const groups: Individual[][] = Array.from(
-    { length: groupCount },
-    (_, i) => [...(existingGroups[i] ?? [])],
-  );
+  const groups: Individual[][] = Array.from({ length: groupCount }, (_, i) => [...(existingGroups[i] ?? [])]);
   const n = groups.reduce((sum, g) => sum + g.length, 0) + newcomers.length;
   const base = Math.floor(n / groupCount);
   const extra = n % groupCount;
