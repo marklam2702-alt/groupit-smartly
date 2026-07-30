@@ -211,10 +211,11 @@ function SessionView({ code, hostToken }: { code: string; hostToken: string | nu
   const nickRef = useRef<HTMLInputElement>(null);
 
   const runFinish = useServerFn(finishSession);
-  const runReopen = useServerFn(reopenSession);
+  const runDelete = useServerFn(deleteIndividual);
   const isHost = !!hostToken;
   const finished = session?.status === "finished";
   const result = session?.result ?? null;
+  const groupedIds = new Set(result ? result.groups.flat().map((g) => g.id) : []);
 
   const loadAll = useCallback(async () => {
     const { data: s } = await supabase
