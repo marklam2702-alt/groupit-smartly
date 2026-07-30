@@ -274,6 +274,10 @@ function Page() {
     <SessionView
       code={code}
       hostToken={hostToken}
+      onHostTokenChange={(t) => {
+        setHostToken(t);
+        if (code) saveHostToken(code, t);
+      }}
       onExit={() => {
         setCode(null);
         setHostToken(null);
