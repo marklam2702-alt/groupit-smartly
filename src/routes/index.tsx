@@ -584,6 +584,9 @@ function SessionView({
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-4 py-10">
+        <div className="mb-4 flex justify-center sm:justify-start">
+          <SessionQrCode url={shareUrl} />
+        </div>
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Group It</h1>
