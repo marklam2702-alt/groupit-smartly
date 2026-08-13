@@ -27,6 +27,8 @@ import {
   createSession,
   deleteIndividual,
   finishSession,
+  moveIndividual,
+
   reopenSession,
   updateCategories,
   updateHostPassword,
