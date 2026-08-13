@@ -219,7 +219,55 @@ export const deleteIndividual = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Host can manually move one individual between groups (drag & drop). */
+export const moveIndividual = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z
+      .object({
+        code: z.string().min(1),
+        hostToken: z.string().min(1),
+        id: z.string().min(1),
+        toGroup: z.number().int().min(0).max(3),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: session, error } = await supabaseAdmin
+      .from("sessions")
+      .select("id, host_token, result")
+      .eq("code", data.code.toUpperCase())
+      .maybeSingle();
+    if (error) throw error;
+    if (!session) throw new Error("Session not found");
+    if (session.host_token !== data.hostToken) throw new Error("Only the host can move individuals");
+
+    const current = (session.result as unknown as GroupResult | null) ?? null;
+    if (!current?.groups?.length) throw new Error("No group result yet");
+    if (data.toGroup >= current.groups.length) throw new Error("Invalid group");
+
+    let moved: Individual | null = null;
+    const groups = current.groups.map((g) => {
+      const idx = g.findIndex((m) => m.id === data.id);
+      if (idx === -1) return [...g];
+      const copy = [...g];
+      moved = copy.splice(idx, 1)[0];
+      return copy;
+    });
+    if (!moved) throw new Error("Individual not found in the result");
+    groups[data.toGroup].push(moved);
+
+    const result: GroupResult = { ...current, groups };
+    const { error: upError } = await supabaseAdmin
+      .from("sessions")
+      .update({ result: JSON.parse(JSON.stringify(result)) })
+      .eq("id", session.id);
+    if (upError) throw upError;
+    return result;
+  });
+
 export const reopenSession = createServerFn({ method: "POST" })
+
   .inputValidator((input) =>
     z.object({ code: z.string().min(1), hostToken: z.string().min(1) }).parse(input),
   )
