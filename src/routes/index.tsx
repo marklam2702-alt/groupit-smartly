@@ -27,6 +27,8 @@ import {
   createSession,
   deleteIndividual,
   finishSession,
+  moveIndividual,
+
   reopenSession,
   updateCategories,
   updateHostPassword,
@@ -323,6 +325,10 @@ function SessionView({
   const runDelete = useServerFn(deleteIndividual);
   const runClear = useServerFn(reopenSession);
   const runUpdateCategories = useServerFn(updateCategories);
+  const runMove = useServerFn(moveIndividual);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverGroup, setDragOverGroup] = useState<number | null>(null);
+
   const isHost = !!hostToken;
   const finished = session?.status === "finished";
   const result = session?.result ?? null;
@@ -439,6 +445,26 @@ function SessionView({
       setBusy(false);
     }
   };
+
+  const handleDropOnGroup = async (toGroup: number) => {
+    const id = dragId;
+    setDragId(null);
+    setDragOverGroup(null);
+    if (!id || !hostToken || !result) return;
+    const fromGroup = result.groups.findIndex((g) => g.some((m) => m.id === id));
+    if (fromGroup === toGroup) return;
+    setBusy(true);
+    try {
+      await runMove({ data: { code, hostToken, id, toGroup } });
+      await loadAll();
+      toast.success(`Moved to Group ${GROUP_NAMES[toGroup] ?? toGroup + 1}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not move individual");
+    } finally {
+      setBusy(false);
+    }
+  };
+
 
   const handleClear = async () => {
     if (!hostToken) return;
@@ -894,13 +920,24 @@ function SessionView({
 
         {result && (
           <section className="mt-10">
-            <h2 className="mb-4 text-xl font-semibold text-foreground">
+            <h2 className="mb-1 text-xl font-semibold text-foreground">
               Result — {result.groups.length} groups
             </h2>
+            {isHost && (
+              <p className="mb-4 text-sm text-muted-foreground">
+                Drag an individual onto another group to move them manually.
+              </p>
+            )}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 
               {result.groups.map((g, i) => (
-                <Card key={i}>
+                <Card
+                  key={i}
+                  onDragOver={isHost ? (e) => { e.preventDefault(); setDragOverGroup(i); } : undefined}
+                  onDragLeave={isHost ? () => setDragOverGroup((p) => (p === i ? null : p)) : undefined}
+                  onDrop={isHost ? (e) => { e.preventDefault(); handleDropOnGroup(i); } : undefined}
+                  className={isHost && dragOverGroup === i ? "ring-2 ring-primary" : undefined}
+                >
                   <CardHeader>
                     <CardTitle className="text-base">
                       Group {GROUP_NAMES[i] ?? i + 1}{" "}
@@ -912,7 +949,15 @@ function SessionView({
                   <CardContent>
                     <ul className="space-y-2">
                       {g.map((s) => (
-                        <li key={s.id} className="rounded-md border border-border p-2">
+                        <li
+                          key={s.id}
+                          draggable={isHost && !busy}
+                          onDragStart={isHost ? () => setDragId(s.id) : undefined}
+                          onDragEnd={isHost ? () => { setDragId(null); setDragOverGroup(null); } : undefined}
+                          className={`rounded-md border border-border p-2 ${
+                            isHost ? "cursor-grab active:cursor-grabbing" : ""
+                          } ${dragId === s.id ? "opacity-50" : ""}`}
+                        >
                           <div className="font-medium text-foreground">{s.nickName}</div>
                           <div className="mt-1 flex flex-wrap gap-1">
                             <Badge variant="secondary" className="text-[10px]">
@@ -928,6 +973,7 @@ function SessionView({
                   </CardContent>
                 </Card>
               ))}
+
             </div>
           </section>
         )}
