@@ -446,6 +446,26 @@ function SessionView({
     }
   };
 
+  const handleDropOnGroup = async (toGroup: number) => {
+    const id = dragId;
+    setDragId(null);
+    setDragOverGroup(null);
+    if (!id || !hostToken || !result) return;
+    const fromGroup = result.groups.findIndex((g) => g.some((m) => m.id === id));
+    if (fromGroup === toGroup) return;
+    setBusy(true);
+    try {
+      await runMove({ data: { code, hostToken, id, toGroup } });
+      await loadAll();
+      toast.success(`Moved to Group ${GROUP_NAMES[toGroup] ?? toGroup + 1}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not move individual");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+
   const handleClear = async () => {
     if (!hostToken) return;
     setBusy(true);
