@@ -325,6 +325,10 @@ function SessionView({
   const runDelete = useServerFn(deleteIndividual);
   const runClear = useServerFn(reopenSession);
   const runUpdateCategories = useServerFn(updateCategories);
+  const runMove = useServerFn(moveIndividual);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverGroup, setDragOverGroup] = useState<number | null>(null);
+
   const isHost = !!hostToken;
   const finished = session?.status === "finished";
   const result = session?.result ?? null;
