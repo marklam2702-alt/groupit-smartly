@@ -78,6 +78,24 @@ type SessionRow = {
 
 const HOST_KEY = "groupit.host";
 
+function SessionQrCode({ url }: { url: string }) {
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!url) return;
+    QRCode.toDataURL(url, { width: 96, margin: 2, color: { dark: "#000000", light: "#ffffff" } })
+      .then(setDataUrl)
+      .catch(() => setDataUrl(null));
+  }, [url]);
+  if (!dataUrl) return null;
+  return (
+    <img
+      src={dataUrl}
+      alt="QR code to join this session"
+      className="h-24 w-24 rounded-md border border-border bg-white"
+    />
+  );
+}
+
 function loadHostTokens(): Record<string, string> {
   if (typeof window === "undefined") return {};
   try {
