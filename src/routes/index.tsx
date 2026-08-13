@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,6 +77,24 @@ type SessionRow = {
 };
 
 const HOST_KEY = "groupit.host";
+
+function SessionQrCode({ url }: { url: string }) {
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!url) return;
+    QRCode.toDataURL(url, { width: 96, margin: 2, color: { dark: "#000000", light: "#ffffff" } })
+      .then(setDataUrl)
+      .catch(() => setDataUrl(null));
+  }, [url]);
+  if (!dataUrl) return null;
+  return (
+    <img
+      src={dataUrl}
+      alt="QR code to join this session"
+      className="h-24 w-24 rounded-md border border-border bg-white"
+    />
+  );
+}
 
 function loadHostTokens(): Record<string, string> {
   if (typeof window === "undefined") return {};
@@ -565,6 +584,9 @@ function SessionView({
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-4 py-10">
+        <div className="mb-4 flex justify-center sm:justify-start">
+          <SessionQrCode url={shareUrl} />
+        </div>
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Group It</h1>
@@ -671,7 +693,6 @@ function SessionView({
             <Button variant="ghost" size="sm" onClick={onExit}>
               Exit
             </Button>
-
           </div>
         </header>
 
