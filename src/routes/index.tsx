@@ -676,28 +676,23 @@ function SessionView({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:block">
-              <SessionQrCode url={shareUrl} />
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={finished ? "secondary" : "outline"}>
-                {finished ? "Finished" : "Open"}
-              </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(shareUrl);
-                  toast.success("Link copied");
-                }}
-              >
-                Copy link
-              </Button>
-              <Button variant="ghost" size="sm" onClick={onExit}>
-                Exit
-              </Button>
-            </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={finished ? "secondary" : "outline"}>
+              {finished ? "Finished" : "Open"}
+            </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                navigator.clipboard.writeText(shareUrl);
+                toast.success("Link copied");
+              }}
+            >
+              Copy link
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onExit}>
+              Exit
+            </Button>
           </div>
         </header>
 
